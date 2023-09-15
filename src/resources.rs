@@ -17,10 +17,19 @@ pub struct GuiResource {
     pub machine: Machine,
     pub magazine: Magazine,
     pub chosen_magazine_content: MagazineContent,
+    pub chosen_library_content: LibraryContent,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum MagazineContent {
+    #[default]
+    ToolContent,
+    HolderContent,
+    AdapterContent,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+pub enum LibraryContent {
     #[default]
     ToolContent,
     HolderContent,
