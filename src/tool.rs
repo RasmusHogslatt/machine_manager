@@ -1,4 +1,4 @@
-use crate::{library::*, resources::*, states::*};
+use crate::{drawable::*, library::*, resources::*, states::*};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum ToolCategory {
@@ -13,11 +13,11 @@ pub enum Tool {
     PlaceHolderTool(PlaceHolderTool),
     Drill(Drill),
     Mill(Mill),
-    TriangleInsert,
-    CircularInsert,
-    DiamondInsert,
-    TrigonInsert,
-    SquareInsert,
+    TriangleInsert(TriangleInsert),
+    CircularInsert(CircularInsert),
+    DiamondInsert(DiamondInsert),
+    TrigonInsert(TrigonInsert),
+    SquareInsert(SquareInsert),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
@@ -40,7 +40,7 @@ pub struct Mill {
     pub diameter: f32,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct PlaceHolderTool {
     pub name: String,
     pub id: uuid::Uuid,
@@ -99,15 +99,17 @@ pub struct SquareInsert {
     pub degree: f32,
 }
 
-// Add tool to library
+// Add tool to library's 'tools' vector
 pub fn add_tool(
     gui_resource: &mut GuiResource,
     library: &mut Library,
     popup_state: &mut PopupState,
     ctx: &egui::Context,
 ) {
+    if popup_state != &PopupState::AddTool {
+        return;
+    }
     egui::Window::new("Add Tool").show(ctx, |ui| {
-        // Choose tool category with radio buttons (rotating, latheinsert, empty)
         ui.horizontal(|ui| {
             ui.radio_value(
                 &mut gui_resource.tool_category,
@@ -118,11 +120,6 @@ pub fn add_tool(
                 &mut gui_resource.tool_category,
                 ToolCategory::Rotating,
                 "Rotating",
-            );
-            ui.radio_value(
-                &mut gui_resource.tool_category,
-                ToolCategory::Empty,
-                "Empty",
             );
         });
         match gui_resource.tool_category {
@@ -146,27 +143,27 @@ pub fn add_tool(
                 ui.horizontal(|ui| {
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
-                        Tool::TriangleInsert,
+                        Tool::TriangleInsert(TriangleInsert::default()),
                         "Triangle",
                     );
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
-                        Tool::CircularInsert,
+                        Tool::CircularInsert(CircularInsert::default()),
                         "Circular",
                     );
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
-                        Tool::DiamondInsert,
+                        Tool::DiamondInsert(DiamondInsert::default()),
                         "Diamond",
                     );
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
-                        Tool::TrigonInsert,
+                        Tool::TrigonInsert(TrigonInsert::default()),
                         "Trigon",
                     );
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
-                        Tool::SquareInsert,
+                        Tool::SquareInsert(SquareInsert::default()),
                         "Square",
                     );
                 });
@@ -175,83 +172,41 @@ pub fn add_tool(
         }
         match (&gui_resource.tool_selected, &gui_resource.tool_category) {
             (Tool::Drill(_), ToolCategory::Rotating) => {
-                ui.add(egui::TextEdit::singleline(&mut gui_resource.drill.name).hint_text("Name"));
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.drill.diameter, 0.0..=100.0)
-                        .text("Diameter"),
-                );
+                gui_resource
+                    .drill
+                    .draw_adding_to_library(library, popup_state, ui);
             }
             (Tool::Mill(_), ToolCategory::Rotating) => {
-                ui.add(egui::TextEdit::singleline(&mut gui_resource.mill.name).hint_text("Name"));
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.mill.diameter, 0.0..=100.0)
-                        .text("Diameter"),
-                );
+                gui_resource
+                    .mill
+                    .draw_adding_to_library(library, popup_state, ui);
             }
-            (Tool::TriangleInsert, ToolCategory::LatheInsert) => {
-                ui.add(
-                    egui::TextEdit::singleline(&mut gui_resource.triangle_insert.name)
-                        .hint_text("Name"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.triangle_insert.degree, 0.0..=100.0)
-                        .text("Degree"),
-                );
+            (Tool::TriangleInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .triangle_insert
+                    .draw_adding_to_library(library, popup_state, ui);
             }
-            (Tool::CircularInsert, ToolCategory::LatheInsert) => {
-                ui.add(
-                    egui::TextEdit::singleline(&mut gui_resource.circular_insert.name)
-                        .hint_text("Name"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.circular_insert.degree, 0.0..=100.0)
-                        .text("Degree"),
-                );
+            (Tool::CircularInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .circular_insert
+                    .draw_adding_to_library(library, popup_state, ui);
             }
-            (Tool::DiamondInsert, ToolCategory::LatheInsert) => {
-                ui.add(
-                    egui::TextEdit::singleline(&mut gui_resource.diamond_insert.name)
-                        .hint_text("Name"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.diamond_insert.degree, 0.0..=100.0)
-                        .text("Degree"),
-                );
+            (Tool::DiamondInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .diamond_insert
+                    .draw_adding_to_library(library, popup_state, ui);
             }
-            (Tool::TrigonInsert, ToolCategory::LatheInsert) => {
-                ui.add(
-                    egui::TextEdit::singleline(&mut gui_resource.trigon_insert.name)
-                        .hint_text("Name"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.trigon_insert.degree, 0.0..=100.0)
-                        .text("Degree"),
-                );
+            (Tool::TrigonInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .trigon_insert
+                    .draw_adding_to_library(library, popup_state, ui);
             }
-            (Tool::SquareInsert, ToolCategory::LatheInsert) => {
-                ui.add(
-                    egui::TextEdit::singleline(&mut gui_resource.square_insert.name)
-                        .hint_text("Name"),
-                );
-                ui.add(
-                    egui::Slider::new(&mut gui_resource.square_insert.degree, 0.0..=100.0)
-                        .text("Degree"),
-                );
+            (Tool::SquareInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .square_insert
+                    .draw_adding_to_library(library, popup_state, ui);
             }
             (_, _) => {}
         }
-
-        // Generate machine ID. This is added to items in magazine
-        gui_resource.machine.id = uuid::Uuid::new_v4();
-
-        ui.horizontal(|ui| {
-            if ui.button("Cancel").clicked() {
-                *popup_state = PopupState::None;
-            }
-            if ui.button("Save").clicked() {
-                //push cloned tool to library
-                *popup_state = PopupState::None;
-            }
-        });
     });
 }

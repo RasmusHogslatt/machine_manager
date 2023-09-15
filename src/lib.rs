@@ -2,6 +2,7 @@
 
 mod adapter;
 mod app;
+mod drawable;
 mod holder;
 mod library;
 mod machine;
@@ -12,6 +13,7 @@ mod tool;
 
 pub use adapter::*;
 pub use app::*;
+pub use drawable::*;
 pub use holder::*;
 pub use library::*;
 pub use machine::*;
