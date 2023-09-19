@@ -31,6 +31,20 @@ impl Default for ManagingApp {
                     location_slot: 0,
                     category: ToolCategory::Empty,
                 }),
+                holder_selected: Holder::PlaceHolderHolder(PlaceHolderHolder {
+                    name: "Empty holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::Empty,
+                }),
+                adapter_selected: Adapter::PlaceHolderAdapter(PlaceHolderAdapter {
+                    name: "Empty adapter".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 1,
+                    category: AdapterCategory::Empty,
+                }),
                 holder_category: HolderCategory::Empty,
                 adapter_category: AdapterCategory::Empty,
                 drill: Drill {
@@ -95,6 +109,99 @@ impl Default for ManagingApp {
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: ToolCategory::Empty,
+                },
+                collet_holder: ColletHolder {
+                    name: "collet holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::MillingHolder,
+                    collet_type_name: "ET20".to_string(),
+                    collet_size: 1.0,
+                },
+                end_mill_holder: EndMillHolder {
+                    name: "end mill holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::MillingHolder,
+                },
+                drill_chuck_holder: DrillChuckHolder {
+                    name: "drill chuck holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::DrillingHolder,
+                },
+                external_turning_holder: ExternalTurningHolder {
+                    name: "external turning holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::TurningHolder,
+                },
+                internal_turning_holder: InternalTurningHolder {
+                    name: "internal turning holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::TurningHolder,
+                },
+                grooving_parting_holder: GroovingPartingHolder {
+                    name: "grooving parting holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::SpecialtyHolder,
+                },
+                threading_holder: ThreadingHolder {
+                    name: "threading holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::SpecialtyHolder,
+                },
+                tapping_holder: TappingHolder {
+                    name: "tapping holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::SpecialtyHolder,
+                },
+                placeholder_holder: PlaceHolderHolder {
+                    name: "Empty holder".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 0,
+                    category: HolderCategory::Empty,
+                },
+                shrink_fit_adapter: ShrinkFitAdapter {
+                    name: "shrink fit adapter".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 1,
+                    category: AdapterCategory::Standard,
+                },
+                side_lock_adapter: SideLockAdapter {
+                    name: "side lock adapter".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 1,
+                    category: AdapterCategory::Standard,
+                },
+                hydraulic_adapter: HydraulicAdapter {
+                    name: "hydraulic adapter".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 1,
+                    category: AdapterCategory::Standard,
+                },
+                placeholder_adapter: PlaceHolderAdapter {
+                    name: "Empty adapter".to_string(),
+                    id: uuid::Uuid::new_v4(),
+                    location_id: uuid::Uuid::new_v4(),
+                    location_slot: 1,
+                    category: AdapterCategory::Empty,
                 },
                 magazine: Magazine {
                     name: "magazine".to_string(),
@@ -176,7 +283,7 @@ impl eframe::App for ManagingApp {
         match popup_state {
             PopupState::AddMachine => add_machine(gui_resource, machines, popup_state, ctx),
             PopupState::AddTool => add_tool(gui_resource, library, popup_state, ctx),
-            PopupState::AddHolder => {}
+            PopupState::AddHolder => add_holder(gui_resource, library, popup_state, ctx),
             PopupState::AddAdapter => {}
             PopupState::None => {}
             PopupState::DisplayLibrary => display_library(ctx, gui_resource, library, popup_state),
@@ -353,13 +460,13 @@ pub fn display_library(
             LibraryContent::HolderContent => {
                 // print holders
                 for holder in &mut library.holders {
-                    // holder.draw_display(ui);
+                    holder.draw_display(ui);
                 }
             }
             LibraryContent::AdapterContent => {
                 // print adapters
                 for adapter in &mut library.adapters {
-                    // adapter.draw_display(ui);
+                    adapter.draw_display(ui);
                 }
             }
         }
