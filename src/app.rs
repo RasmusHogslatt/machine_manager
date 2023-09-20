@@ -284,7 +284,7 @@ impl eframe::App for ManagingApp {
             PopupState::AddMachine => add_machine(gui_resource, machines, popup_state, ctx),
             PopupState::AddTool => add_tool(gui_resource, library, popup_state, ctx),
             PopupState::AddHolder => add_holder(gui_resource, library, popup_state, ctx),
-            PopupState::AddAdapter => {}
+            PopupState::AddAdapter => add_adapter(gui_resource, library, popup_state, ctx),
             PopupState::None => {}
             PopupState::DisplayLibrary => display_library(ctx, gui_resource, library, popup_state),
         }
