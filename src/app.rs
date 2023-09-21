@@ -267,18 +267,16 @@ impl eframe::App for ManagingApp {
         } = self;
 
         // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Quit").clicked() {
-                        _frame.close();
-                    }
-                });
-                select_machine(machines, selected_machine, ui);
-                select_magazine(machines, selected_machine, selected_magazine, ui);
-            });
-        });
+        // egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+        //     // The top panel is often a good place for a menu bar:
+        //     egui::menu::bar(ui, |ui| {
+        //         ui.menu_button("File", |ui| {
+        //             if ui.button("Quit").clicked() {
+        //                 _frame.close();
+        //             }
+        //         });
+        //     });
+        // });
 
         match popup_state {
             PopupState::AddMachine => add_machine(gui_resource, machines, popup_state, ctx),
@@ -289,12 +287,15 @@ impl eframe::App for ManagingApp {
             PopupState::DisplayLibrary => display_library(ctx, gui_resource, library, popup_state),
         }
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
-
+            ui.heading("Machine Manager");
+            select_machine(machines, selected_machine, ui);
+            select_magazine(machines, selected_machine, selected_magazine, ui);
+            ui.separator();
             // Buttons to change state for adding stuff
             if ui.button("Show library").clicked() {
                 self.popup_state = PopupState::DisplayLibrary;
             }
+            ui.separator();
             if ui.button("Add machine").clicked() {
                 self.popup_state = PopupState::AddMachine;
             }
