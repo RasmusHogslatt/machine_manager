@@ -1,6 +1,21 @@
 use crate::{
-    adapter::*, drawable::*, holder::*, library::*, machine::*, magazine::*, resources::*,
-    states::*, tool::*,
+    adapter::*,
+    circular_insert::CircularInsert,
+    diamond_insert::DiamondInsert,
+    drawable::*,
+    drill::Drill,
+    holder::*,
+    library::*,
+    machine::*,
+    magazine::*,
+    mill::Mill,
+    placeholder::PlaceHolder,
+    resources::*,
+    square_insert::SquareInsert,
+    states::*,
+    tool::{Tool, ToolCategory},
+    triangle_insert::TriangleInsert,
+    trigon_insert::TrigonInsert,
 };
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -24,7 +39,7 @@ impl Default for ManagingApp {
         Self {
             gui_resource: GuiResource {
                 tool_category: ToolCategory::Empty,
-                tool_selected: Tool::PlaceHolderTool(PlaceHolderTool {
+                tool_selected: Tool::PlaceHolder(PlaceHolder {
                     name: "Empty tool".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -87,7 +102,7 @@ impl Default for ManagingApp {
                     category: ToolCategory::LatheInsert,
                     degree: 35.0,
                 },
-                trigon_insert: TrigonInsert {
+                trigon_insert: crate::trigon_insert::TrigonInsert {
                     name: "trigon insert".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -103,7 +118,7 @@ impl Default for ManagingApp {
                     category: ToolCategory::LatheInsert,
                     degree: 35.0,
                 },
-                placeholder_tool: PlaceHolderTool {
+                placeholder_tool: PlaceHolder {
                     name: "Empty tool".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -208,9 +223,7 @@ impl Default for ManagingApp {
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
-                    tools: Vec::new(),
-                    holders: Vec::new(),
-                    adapters: Vec::new(),
+                    contents: Vec::new(),
                     capacity: 10,
                 },
                 machine: Machine {
@@ -286,6 +299,7 @@ impl eframe::App for ManagingApp {
             PopupState::None => {}
             PopupState::DisplayLibrary => display_library(ctx, gui_resource, library, popup_state),
         }
+
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Machine Manager");
             select_machine(machines, selected_machine, ui);
@@ -400,7 +414,7 @@ pub fn display_machine_ui(
             ));
         });
 
-        if let Some(current_magazine) = current_magazine {
+        if let Some(_current_magazine) = current_magazine {
             // Choose what magazine content to display: tools, holders or adapters with radio buttons
             ui.horizontal(|ui| {
                 ui.radio_value(
@@ -423,11 +437,12 @@ pub fn display_machine_ui(
         }
     }
 }
+
 pub fn display_library(
     ctx: &egui::Context,
     gui_resource: &mut GuiResource,
-    mut library: &mut Library,
-    mut popup_state: &mut PopupState,
+    library: &mut Library,
+    popup_state: &mut PopupState,
 ) {
     if popup_state != &PopupState::DisplayLibrary {
         return;
@@ -455,7 +470,14 @@ pub fn display_library(
             LibraryContent::ToolContent => {
                 // print tools
                 for tool in &mut library.tools {
-                    tool.draw_display(ui);
+                    ui.horizontal(|ui| {
+                        tool.draw_display(ui);
+                        // show slot position in library tools vector
+                        ui.label(tool.get_location_slot().to_string());
+                        if ui.button("Delete").clicked() {
+                            // Delete tool. Moving to library should be done from display_magazine
+                        }
+                    });
                 }
             }
             LibraryContent::HolderContent => {
@@ -473,6 +495,117 @@ pub fn display_library(
         }
         if ui.button("Close").clicked() {
             *popup_state = PopupState::None;
+        }
+    });
+}
+
+pub fn add_tool(
+    gui_resource: &mut GuiResource,
+    library: &mut Library,
+    popup_state: &mut PopupState,
+    ctx: &egui::Context,
+) {
+    if popup_state != &PopupState::AddTool {
+        return;
+    }
+    egui::Window::new("Add Tool").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.radio_value(
+                &mut gui_resource.tool_category,
+                ToolCategory::LatheInsert,
+                "Lathe Insert",
+            );
+            ui.radio_value(
+                &mut gui_resource.tool_category,
+                ToolCategory::Rotating,
+                "Rotating",
+            );
+        });
+        match gui_resource.tool_category {
+            ToolCategory::Rotating => {
+                // if rotating, choose drill or mill as tool_selected
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::Drill(Drill::default()),
+                        "Drill",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::Mill(Mill::default()),
+                        "Mill",
+                    );
+                });
+            }
+            ToolCategory::LatheInsert => {
+                // if latheinsert, choose insert as tool_selected
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::TriangleInsert(TriangleInsert::default()),
+                        "Triangle",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::CircularInsert(CircularInsert::default()),
+                        "Circular",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::DiamondInsert(DiamondInsert::default()),
+                        "Diamond",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::TrigonInsert(TrigonInsert::default()),
+                        "Trigon",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.tool_selected,
+                        Tool::SquareInsert(SquareInsert::default()),
+                        "Square",
+                    );
+                });
+            }
+            ToolCategory::Empty => {}
+        }
+        match (&gui_resource.tool_selected, &gui_resource.tool_category) {
+            (Tool::Drill(_), ToolCategory::Rotating) => {
+                gui_resource
+                    .drill
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::Mill(_), ToolCategory::Rotating) => {
+                gui_resource
+                    .mill
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::TriangleInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .triangle_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::CircularInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .circular_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::DiamondInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .diamond_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::TrigonInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .trigon_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Tool::SquareInsert(_), ToolCategory::LatheInsert) => {
+                gui_resource
+                    .square_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (_, _) => {}
         }
     });
 }

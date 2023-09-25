@@ -9,7 +9,8 @@ mod machine;
 mod magazine;
 mod resources;
 mod states;
-mod tool;
+mod tools;
+mod utils;
 
 pub use adapter::*;
 pub use app::*;
@@ -20,6 +21,8 @@ pub use machine::*;
 pub use magazine::*;
 pub use resources::*;
 pub use states::*;
-pub use tool::*;
+//pub use tool::*;
+pub use tools::*;
+pub use utils::*;
 
 pub use uuid;

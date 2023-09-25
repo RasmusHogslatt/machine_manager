@@ -1,4 +1,6 @@
-use crate::{adapter::*, holder::*, magazine::*, resources::*, states::*, tool::*};
+use crate::{
+    adapter::*, holder::*, magazine::*, placeholder::PlaceHolder, resources::*, states::*, tool::*,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Machine {
@@ -41,8 +43,9 @@ pub fn add_machine(
             let mut placeholder_tools: Vec<Tool> = Vec::new();
             let mut placeholder_holders: Vec<Holder> = Vec::new();
             let mut placeholder_adapters: Vec<Adapter> = Vec::new();
+            gui_resource.magazine.contents = Vec::new();
             for i in 0..gui_resource.magazine.capacity {
-                placeholder_tools.push(Tool::PlaceHolderTool(PlaceHolderTool {
+                placeholder_tools.push(Tool::PlaceHolder(PlaceHolder {
                     name: format!("Empty tool {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
@@ -63,10 +66,12 @@ pub fn add_machine(
                     location_slot: i,
                     category: AdapterCategory::Empty,
                 }));
+                gui_resource.magazine.contents.push((
+                    placeholder_tools[i].clone(),
+                    placeholder_holders[i].clone(),
+                    placeholder_adapters[i].clone(),
+                ));
             }
-            gui_resource.magazine.tools = placeholder_tools;
-            gui_resource.magazine.holders = placeholder_holders;
-            gui_resource.magazine.adapters = placeholder_adapters;
         }
         ui.horizontal(|ui| {
             if ui.button("Cancel").clicked() {
@@ -90,6 +95,7 @@ pub fn add_machine(
                     magazine_count: 1,
                     magazines: Vec::new(),
                 };
+
                 *popup_state = PopupState::None;
             }
         });

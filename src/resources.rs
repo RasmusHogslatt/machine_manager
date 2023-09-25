@@ -1,4 +1,9 @@
-use crate::{adapter::*, holder::*, machine::*, magazine::*, tool::*};
+use crate::{
+    adapter::*, circular_insert::CircularInsert, diamond_insert::DiamondInsert, drill::Drill,
+    holder::*, machine::*, magazine::*, mill::Mill, placeholder::PlaceHolder,
+    square_insert::SquareInsert, tool::*, triangle_insert::TriangleInsert,
+    trigon_insert::TrigonInsert,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct GuiResource {
@@ -16,7 +21,7 @@ pub struct GuiResource {
     pub square_insert: SquareInsert,
     pub trigon_insert: TrigonInsert,
     pub diamond_insert: DiamondInsert,
-    pub placeholder_tool: PlaceHolderTool,
+    pub placeholder_tool: PlaceHolder,
     // holders
     pub collet_holder: ColletHolder,
     pub end_mill_holder: EndMillHolder,
