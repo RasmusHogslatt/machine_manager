@@ -1,8 +1,9 @@
 use uuid::Uuid;
 
 use crate::{
-    circular_insert::*, diamond_insert::*, drill::*, mill::*, placeholder::*, square_insert::*,
-    triangle_insert::*, trigon_insert::*, Drawable, Identifiable, Library, Locatable, PopupState,
+    circular_insert::*, diamond_insert::*, drill::*, mill::*, square_insert::*,
+    tool_placeholder::*, triangle_insert::*, trigon_insert::*, Drawable, Identifiable, Library,
+    Locatable, PopupState,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -15,7 +16,7 @@ pub enum ToolCategory {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
 pub enum Tool {
-    PlaceHolder(PlaceHolder),
+    ToolPlaceHolder(ToolPlaceHolder),
     Drill(Drill),
     Mill(Mill),
     TriangleInsert(TriangleInsert),
@@ -25,10 +26,10 @@ pub enum Tool {
     SquareInsert(SquareInsert),
 }
 
-impl Tool {
-    pub fn get_id(&self) -> Uuid {
+impl Identifiable for Tool {
+    fn get_id(&self) -> Uuid {
         match self {
-            Tool::PlaceHolder(tool) => tool.get_id(),
+            Tool::ToolPlaceHolder(tool) => tool.get_id(),
             Tool::Drill(tool) => tool.get_id(),
             Tool::Mill(tool) => tool.get_id(),
             Tool::TriangleInsert(tool) => tool.get_id(),
@@ -38,10 +39,11 @@ impl Tool {
             Tool::SquareInsert(tool) => tool.get_id(),
         }
     }
-
-    pub fn set_location_id(&mut self, location_id: Uuid) {
+}
+impl Locatable for Tool {
+    fn set_location_id(&mut self, location_id: Uuid) {
         match self {
-            Tool::PlaceHolder(tool) => tool.set_location_id(location_id),
+            Tool::ToolPlaceHolder(tool) => tool.set_location_id(location_id),
             Tool::Drill(tool) => tool.set_location_id(location_id),
             Tool::Mill(tool) => tool.set_location_id(location_id),
             Tool::TriangleInsert(tool) => tool.set_location_id(location_id),
@@ -52,9 +54,11 @@ impl Tool {
         }
     }
 
-    pub fn set_location_slot(&mut self, location_slot: usize) {
+    fn set_location_slot(&mut self, location_slot: usize) {
         match self {
-            Tool::PlaceHolder(place_holder_tool) => place_holder_tool.location_slot = location_slot,
+            Tool::ToolPlaceHolder(place_holder_tool) => {
+                place_holder_tool.location_slot = location_slot
+            }
             Tool::Drill(tool) => tool.set_location_slot(location_slot),
             Tool::Mill(tool) => tool.set_location_slot(location_slot),
             Tool::TriangleInsert(tool) => tool.set_location_slot(location_slot),
@@ -64,19 +68,6 @@ impl Tool {
             Tool::SquareInsert(tool) => tool.set_location_slot(location_slot),
         }
     }
-
-    pub fn get_location_slot(&self) -> usize {
-        match self {
-            Tool::PlaceHolder(place_holder_tool) => place_holder_tool.location_slot,
-            Tool::Drill(drill) => drill.location_slot,
-            Tool::Mill(mill) => mill.location_slot,
-            Tool::TriangleInsert(triangle_insert) => triangle_insert.location_slot,
-            Tool::CircularInsert(circular_insert) => circular_insert.location_slot,
-            Tool::DiamondInsert(diamond_insert) => diamond_insert.location_slot,
-            Tool::TrigonInsert(trigon_insert) => trigon_insert.location_slot,
-            Tool::SquareInsert(square_insert) => square_insert.location_slot,
-        }
-    }
 }
 
 impl Drawable for Tool {
@@ -84,7 +75,7 @@ impl Drawable for Tool {
         match self {
             Tool::Drill(drill) => drill.draw_display(ui),
             Tool::Mill(mill) => mill.draw_display(ui),
-            Tool::PlaceHolder(place_holder_tool) => place_holder_tool.draw_display(ui),
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.draw_display(ui),
             Tool::TriangleInsert(triangle_insert) => triangle_insert.draw_display(ui),
             Tool::CircularInsert(circular_insert) => circular_insert.draw_display(ui),
             Tool::SquareInsert(square_insert) => square_insert.draw_display(ui),
@@ -96,7 +87,7 @@ impl Drawable for Tool {
         match self {
             Tool::Drill(drill) => drill.draw_edit(ui),
             Tool::Mill(mill) => mill.draw_edit(ui),
-            Tool::PlaceHolder(place_holder_tool) => place_holder_tool.draw_edit(ui),
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.draw_edit(ui),
             Tool::TriangleInsert(triangle_insert) => triangle_insert.draw_edit(ui),
             Tool::CircularInsert(circular_insert) => circular_insert.draw_edit(ui),
             Tool::SquareInsert(square_insert) => square_insert.draw_edit(ui),
@@ -114,7 +105,7 @@ impl Drawable for Tool {
         match self {
             Tool::Drill(drill) => drill.draw_adding_to_library(library, popup_state, ui),
             Tool::Mill(mill) => mill.draw_adding_to_library(library, popup_state, ui),
-            Tool::PlaceHolder(place_holder_tool) => {
+            Tool::ToolPlaceHolder(place_holder_tool) => {
                 place_holder_tool.draw_adding_to_library(library, popup_state, ui)
             }
             Tool::TriangleInsert(triangle_insert) => {

@@ -1,19 +1,32 @@
 use crate::{
     adapter::*,
+    adapter_placeholder::AdapterPlaceHolder,
     circular_insert::CircularInsert,
+    collet::Collet,
     diamond_insert::DiamondInsert,
     drawable::*,
     drill::Drill,
-    holder::*,
+    drill_chuck::DrillChuck,
+    end_mill::EndMill,
+    external_turning::ExternalTurning,
+    grooving_parting::GroovingParting,
+    holder_placeholder::HolderPlaceHolder,
+    holders::holder::{Holder, HolderCategory},
+    hydraulic::Hydraulic,
+    internal_turning::InternalTurning,
     library::*,
     machine::*,
     magazine::*,
     mill::Mill,
-    placeholder::PlaceHolder,
     resources::*,
+    shrink_fit::ShrinkFit,
+    side_lock::SideLock,
     square_insert::SquareInsert,
     states::*,
+    tapping::Tapping,
+    threading::Threading,
     tool::{Tool, ToolCategory},
+    tool_placeholder::ToolPlaceHolder,
     triangle_insert::TriangleInsert,
     trigon_insert::TrigonInsert,
 };
@@ -39,21 +52,21 @@ impl Default for ManagingApp {
         Self {
             gui_resource: GuiResource {
                 tool_category: ToolCategory::Empty,
-                tool_selected: Tool::PlaceHolder(PlaceHolder {
+                tool_selected: Tool::ToolPlaceHolder(ToolPlaceHolder {
                     name: "Empty tool".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: ToolCategory::Empty,
                 }),
-                holder_selected: Holder::PlaceHolderHolder(PlaceHolderHolder {
+                holder_selected: Holder::HolderPlaceHolder(HolderPlaceHolder {
                     name: "Empty holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::Empty,
                 }),
-                adapter_selected: Adapter::PlaceHolderAdapter(PlaceHolderAdapter {
+                adapter_selected: Adapter::AdapterPlaceHolder(AdapterPlaceHolder {
                     name: "Empty adapter".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -118,14 +131,14 @@ impl Default for ManagingApp {
                     category: ToolCategory::LatheInsert,
                     degree: 35.0,
                 },
-                placeholder_tool: PlaceHolder {
+                placeholder_tool: ToolPlaceHolder {
                     name: "Empty tool".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: ToolCategory::Empty,
                 },
-                collet_holder: ColletHolder {
+                collet_holder: Collet {
                     name: "collet holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -134,84 +147,84 @@ impl Default for ManagingApp {
                     collet_type_name: "ET20".to_string(),
                     collet_size: 1.0,
                 },
-                end_mill_holder: EndMillHolder {
+                end_mill_holder: EndMill {
                     name: "end mill holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::MillingHolder,
                 },
-                drill_chuck_holder: DrillChuckHolder {
+                drill_chuck_holder: DrillChuck {
                     name: "drill chuck holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::DrillingHolder,
                 },
-                external_turning_holder: ExternalTurningHolder {
+                external_turning_holder: ExternalTurning {
                     name: "external turning holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::TurningHolder,
                 },
-                internal_turning_holder: InternalTurningHolder {
+                internal_turning_holder: InternalTurning {
                     name: "internal turning holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::TurningHolder,
                 },
-                grooving_parting_holder: GroovingPartingHolder {
+                grooving_parting_holder: GroovingParting {
                     name: "grooving parting holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::SpecialtyHolder,
                 },
-                threading_holder: ThreadingHolder {
+                threading_holder: Threading {
                     name: "threading holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::SpecialtyHolder,
                 },
-                tapping_holder: TappingHolder {
+                tapping_holder: Tapping {
                     name: "tapping holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::SpecialtyHolder,
                 },
-                placeholder_holder: PlaceHolderHolder {
+                placeholder_holder: HolderPlaceHolder {
                     name: "Empty holder".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 0,
                     category: HolderCategory::Empty,
                 },
-                shrink_fit_adapter: ShrinkFitAdapter {
+                shrink_fit_adapter: ShrinkFit {
                     name: "shrink fit adapter".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 1,
                     category: AdapterCategory::Standard,
                 },
-                side_lock_adapter: SideLockAdapter {
+                side_lock_adapter: SideLock {
                     name: "side lock adapter".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 1,
                     category: AdapterCategory::Standard,
                 },
-                hydraulic_adapter: HydraulicAdapter {
+                hydraulic_adapter: Hydraulic {
                     name: "hydraulic adapter".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
                     location_slot: 1,
                     category: AdapterCategory::Standard,
                 },
-                placeholder_adapter: PlaceHolderAdapter {
+                placeholder_adapter: AdapterPlaceHolder {
                     name: "Empty adapter".to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: uuid::Uuid::new_v4(),
@@ -473,7 +486,7 @@ pub fn display_library(
                     ui.horizontal(|ui| {
                         tool.draw_display(ui);
                         // show slot position in library tools vector
-                        ui.label(tool.get_location_slot().to_string());
+
                         if ui.button("Delete").clicked() {
                             // Delete tool. Moving to library should be done from display_magazine
                         }
@@ -603,6 +616,214 @@ pub fn add_tool(
             (Tool::SquareInsert(_), ToolCategory::LatheInsert) => {
                 gui_resource
                     .square_insert
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (_, _) => {}
+        }
+    });
+}
+
+pub fn add_holder(
+    gui_resource: &mut GuiResource,
+    library: &mut Library,
+    popup_state: &mut PopupState,
+    ctx: &egui::Context,
+) {
+    if popup_state != &PopupState::AddHolder {
+        return;
+    }
+    egui::Window::new("Add holder").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.radio_value(
+                &mut gui_resource.holder_category,
+                HolderCategory::MillingHolder,
+                "Milling",
+            );
+            ui.radio_value(
+                &mut gui_resource.holder_category,
+                HolderCategory::DrillingHolder,
+                "Drilling",
+            );
+            ui.radio_value(
+                &mut gui_resource.holder_category,
+                HolderCategory::TurningHolder,
+                "Turning",
+            );
+            ui.radio_value(
+                &mut gui_resource.holder_category,
+                HolderCategory::SpecialtyHolder,
+                "Specialty",
+            );
+        });
+        match gui_resource.holder_category {
+            HolderCategory::Empty => {}
+            HolderCategory::MillingHolder => {
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::Collet(Collet::default()),
+                        "Collet Holder",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::EndMill(EndMill::default()),
+                        "End Mill Holder",
+                    );
+                });
+            }
+            HolderCategory::DrillingHolder => {
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::DrillChuck(DrillChuck::default()),
+                        "Drill Chuck Holder",
+                    );
+                });
+            }
+            HolderCategory::TurningHolder => {
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::ExternalTurning(ExternalTurning::default()),
+                        "External Turning Holder",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::InternalTurning(InternalTurning::default()),
+                        "Internal Turning Holder",
+                    );
+                });
+            }
+            HolderCategory::SpecialtyHolder => {
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::GroovingParting(GroovingParting::default()),
+                        "Grooving/Parting Holder",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::Threading(Threading::default()),
+                        "Threading Holder",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.holder_selected,
+                        Holder::Tapping(Tapping::default()),
+                        "Tapping Holder",
+                    );
+                });
+            }
+        }
+        match (&gui_resource.holder_selected, &gui_resource.holder_category) {
+            (Holder::Collet(_), HolderCategory::MillingHolder) => {
+                gui_resource
+                    .collet_holder
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+
+            (Holder::EndMill(_), HolderCategory::MillingHolder) => {
+                gui_resource
+                    .end_mill_holder
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+
+            (Holder::DrillChuck(_), HolderCategory::DrillingHolder) => {
+                gui_resource
+                    .drill_chuck_holder
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+
+            (Holder::ExternalTurning(_), HolderCategory::TurningHolder) => {
+                gui_resource.external_turning_holder.draw_adding_to_library(
+                    library,
+                    popup_state,
+                    ui,
+                );
+            }
+
+            (Holder::InternalTurning(_), HolderCategory::TurningHolder) => {
+                gui_resource.internal_turning_holder.draw_adding_to_library(
+                    library,
+                    popup_state,
+                    ui,
+                );
+            }
+
+            (Holder::GroovingParting(_), HolderCategory::SpecialtyHolder) => {
+                gui_resource.grooving_parting_holder.draw_adding_to_library(
+                    library,
+                    popup_state,
+                    ui,
+                );
+            }
+
+            (Holder::Threading(_), HolderCategory::SpecialtyHolder) => {
+                gui_resource
+                    .threading_holder
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+
+            (_, _) => {}
+        }
+    });
+}
+
+pub fn add_adapter(
+    gui_resource: &mut GuiResource,
+    library: &mut Library,
+    popup_state: &mut PopupState,
+    ctx: &egui::Context,
+) {
+    if popup_state != &PopupState::AddAdapter {
+        return;
+    }
+    egui::Window::new("Add adapter").show(ctx, |ui| {
+        ui.horizontal(|ui| {
+            ui.radio_value(
+                &mut gui_resource.adapter_category,
+                AdapterCategory::Standard,
+                "Standard",
+            );
+        });
+        match gui_resource.adapter_category {
+            AdapterCategory::Empty => {}
+            AdapterCategory::Standard => {
+                ui.horizontal(|ui| {
+                    ui.radio_value(
+                        &mut gui_resource.adapter_selected,
+                        Adapter::ShrinkFit(Default::default()),
+                        "ShrinkFitAdapter",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.adapter_selected,
+                        Adapter::SideLock(Default::default()),
+                        "SideLockAdapter",
+                    );
+                    ui.radio_value(
+                        &mut gui_resource.adapter_selected,
+                        Adapter::Hydraulic(Default::default()),
+                        "HydraulicAdapter",
+                    );
+                });
+            }
+        }
+        match (
+            &gui_resource.adapter_selected,
+            &gui_resource.adapter_category,
+        ) {
+            (Adapter::ShrinkFit(_), AdapterCategory::Standard) => {
+                gui_resource
+                    .shrink_fit_adapter
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Adapter::SideLock(_), AdapterCategory::Standard) => {
+                gui_resource
+                    .side_lock_adapter
+                    .draw_adding_to_library(library, popup_state, ui);
+            }
+            (Adapter::Hydraulic(_), AdapterCategory::Standard) => {
+                gui_resource
+                    .hydraulic_adapter
                     .draw_adding_to_library(library, popup_state, ui);
             }
             (_, _) => {}

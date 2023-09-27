@@ -2,7 +2,7 @@ use crate::{tool::*, Drawable, Identifiable, Locatable, PopupState};
 use uuid::Uuid;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
-pub struct PlaceHolder {
+pub struct ToolPlaceHolder {
     pub name: String,
     pub id: uuid::Uuid,
     pub location_id: uuid::Uuid,
@@ -10,13 +10,13 @@ pub struct PlaceHolder {
     pub category: ToolCategory,
 }
 
-impl Identifiable for PlaceHolder {
+impl Identifiable for ToolPlaceHolder {
     fn get_id(&self) -> Uuid {
         self.id
     }
 }
 
-impl Locatable for PlaceHolder {
+impl Locatable for ToolPlaceHolder {
     fn set_location_id(&mut self, location_id: Uuid) {
         self.location_id = location_id;
     }
@@ -26,7 +26,7 @@ impl Locatable for PlaceHolder {
     }
 }
 
-impl Drawable for PlaceHolder {
+impl Drawable for ToolPlaceHolder {
     fn draw_display(&mut self, ui: &mut egui::Ui) {
         ui.label("I am an empty tool");
     }

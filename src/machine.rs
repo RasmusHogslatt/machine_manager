@@ -1,5 +1,7 @@
 use crate::{
-    adapter::*, holder::*, magazine::*, placeholder::PlaceHolder, resources::*, states::*, tool::*,
+    adapter::*, adapter_placeholder::AdapterPlaceHolder, holder::*,
+    holder_placeholder::HolderPlaceHolder, magazine::*, resources::*, states::*, tool::*,
+    tool_placeholder::ToolPlaceHolder,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -45,21 +47,21 @@ pub fn add_machine(
             let mut placeholder_adapters: Vec<Adapter> = Vec::new();
             gui_resource.magazine.contents = Vec::new();
             for i in 0..gui_resource.magazine.capacity {
-                placeholder_tools.push(Tool::PlaceHolder(PlaceHolder {
+                placeholder_tools.push(Tool::ToolPlaceHolder(ToolPlaceHolder {
                     name: format!("Empty tool {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
                     location_slot: i,
                     category: ToolCategory::Empty,
                 }));
-                placeholder_holders.push(Holder::PlaceHolderHolder(PlaceHolderHolder {
+                placeholder_holders.push(Holder::HolderPlaceHolder(HolderPlaceHolder {
                     name: format!("Empty holder {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
                     location_slot: i,
                     category: HolderCategory::Empty,
                 }));
-                placeholder_adapters.push(Adapter::PlaceHolderAdapter(PlaceHolderAdapter {
+                placeholder_adapters.push(Adapter::AdapterPlaceHolder(AdapterPlaceHolder {
                     name: format!("Empty adapter {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
