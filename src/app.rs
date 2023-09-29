@@ -247,6 +247,10 @@ impl Default for ManagingApp {
                 },
                 chosen_magazine_content: MagazineContent::default(),
                 chosen_library_content: LibraryContent::default(),
+                selected_machine: None,
+                selected_magazine: None,
+                selected_magazine_slot: 0,
+                selected_library_slot: 0,
             },
             library: Library::default(),
             machines: Vec::new(),
@@ -315,8 +319,14 @@ impl eframe::App for ManagingApp {
 
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Machine Manager");
-            select_machine(machines, selected_machine, ui);
-            select_magazine(machines, selected_machine, selected_magazine, ui);
+            select_machine(machines, selected_machine, ui, gui_resource);
+            select_magazine(
+                machines,
+                selected_machine,
+                selected_magazine,
+                ui,
+                gui_resource,
+            );
             ui.separator();
             // Buttons to change state for adding stuff
             if ui.button("Show library").clicked() {
@@ -345,6 +355,7 @@ impl eframe::App for ManagingApp {
                 ui,
                 gui_resource,
             );
+            display_magazine(gui_resource, library, ui, machines);
         });
     }
 }
@@ -353,6 +364,7 @@ pub fn select_machine(
     machines: &mut Vec<Machine>,
     selected_machine: &mut (uuid::Uuid, usize),
     ui: &mut egui::Ui,
+    gui_resource: &mut GuiResource,
 ) {
     let name = if !machines.is_empty() {
         &machines[selected_machine.1].name
@@ -369,6 +381,7 @@ pub fn select_machine(
                 {
                     selected_machine.1 = i;
                     selected_machine.0 = machines[i].id;
+                    gui_resource.selected_machine = Some(i as u32);
                 }
             }
         });
@@ -379,8 +392,59 @@ pub fn select_magazine(
     selected_machine: &mut (uuid::Uuid, usize),
     selected_magazine: &mut (uuid::Uuid, usize),
     ui: &mut egui::Ui,
+    gui_resource: &mut GuiResource,
 ) {
-    if machines.len() < selected_machine.1 || machines.is_empty() {
+    // get machine index, return if none
+    if let Some(machine_index) = selections.selected_machine {
+        let machine = &mut machines[machine_index];
+        // get magazine index, return if none
+        if let Some(magazine_index) = machine.selected_magazine {
+            let magazine = &mut machine.magazines[magazine_index];
+            ui.label(format!("Magazine: {}", magazine.name));
+            ui.horizontal(|ui| {
+                ui.label(format!("Capacity: {}", magazine.capacity));
+            });
+            for (i, (tool, holder, adapter)) in magazine.contents.iter_mut().enumerate() {
+                // TODO: Change to table
+                ui.horizontal(|ui| {
+                    // Add button to swap tool, holder and adapter
+                    ui.horizontal(|ui| {
+                        tool.draw_display(ui);
+                        if ui.button("Swap tool").clicked() {
+                            selections.selected_magazine_content = MagazineContent::ToolContent;
+                            selections.selected_magazine_slot = Some(i);
+                            *popup_state = PopupState::ChooseFromLibrary;
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        holder.draw_display(ui);
+                        if ui.button("Swap holder").clicked() {
+                            selections.selected_magazine_content = MagazineContent::HolderContent;
+                            selections.selected_magazine_slot = Some(i);
+                            *popup_state = PopupState::ChooseFromLibrary;
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        adapter.draw_display(ui);
+                        if ui.button("Swap adapter").clicked() {
+                            selections.selected_magazine_content = MagazineContent::AdapterContent;
+                            selections.selected_magazine_slot = Some(i);
+                            *popup_state = PopupState::ChooseFromLibrary;
+                        }
+                    });
+                });
+            }
+        }
+    }
+}
+
+pub fn choose_from_library(
+    selections: &mut Selections,
+    egui_ctx: &egui::Context,
+    library: &mut Library,
+    popup_state: &mut PopupState,
+) {
+    if popup_state != &PopupState::ChooseFromLibrary {
         return;
     }
     let machine = &machines[selected_machine.1];
@@ -397,6 +461,7 @@ pub fn select_magazine(
                     {
                         selected_magazine.0 = machine.magazines[i].id;
                         selected_magazine.1 = i;
+                        gui_resource.selected_magazine = Some(i as u32);
                     }
                 }
             });

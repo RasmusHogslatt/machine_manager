@@ -45,7 +45,11 @@ pub struct GuiResource {
     pub machine: Machine,
     pub magazine: Magazine,
     pub chosen_magazine_content: MagazineContent,
-    pub chosen_library_content: LibraryContent,
+    pub chosen_library_content: LibraryContent, // What type of content is moved
+    pub selected_machine: Option<u32>,          // To/From what machine
+    pub selected_magazine: Option<u32>,         // To/From what magazine
+    pub selected_magazine_slot: u32,            // At slot
+    pub selected_library_slot: u32,             // At slot
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
