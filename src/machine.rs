@@ -1,7 +1,9 @@
+use egui::{gui_zoom, Ui};
+
 use crate::{
     adapter::*, adapter_placeholder::AdapterPlaceHolder, holder::*,
     holder_placeholder::HolderPlaceHolder, magazine::*, resources::*, states::*, tool::*,
-    tool_placeholder::ToolPlaceHolder,
+    tool_placeholder::ToolPlaceHolder, Library,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -25,13 +27,10 @@ pub fn add_machine(
     ctx: &egui::Context,
 ) {
     egui::Window::new("Add Machine").show(ctx, |ui| {
-        // UI elements to collect machine properties
         ui.label("Machine name:");
         ui.text_edit_singleline(&mut gui_resource.machine.name);
-
         ui.label("Magazine count:");
         ui.add(egui::DragValue::new(&mut gui_resource.machine.magazine_count).speed(1.0));
-
         // Generate machine ID. This is added to items in magazine
         gui_resource.machine.id = uuid::Uuid::new_v4();
 
@@ -102,4 +101,23 @@ pub fn add_machine(
             }
         });
     });
+}
+
+pub fn display_magazine(
+    gui_resource: &mut GuiResource,
+    _library: &mut Library,
+    ui: &mut Ui,
+    machines: &mut Vec<Machine>,
+) {
+    ui.label("From display magazine");
+    // get current magazine
+    // create variable for machine index and magazine index if they are some
+    if let (Some(machine_index), Some(magazine_index)) = (
+        gui_resource.selected_machine,
+        gui_resource.selected_magazine,
+    ) {
+        let magazine = &mut machines[machine_index as usize].magazines[magazine_index as usize];
+        // display magazine name
+        ui.label(&magazine.location_slot.to_string());
+    }
 }
