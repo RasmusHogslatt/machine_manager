@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::{
     adapter_placeholder::*, hydraulic::*, shrink_fit::*, side_lock::*, Drawable, Identifiable,
-    Library, Locatable, PopupState,
+    IsPlaceholder, Library, Locatable, PopupState,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -12,7 +12,7 @@ pub enum AdapterCategory {
     Standard,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum Adapter {
     ShrinkFit(ShrinkFit),
     SideLock(SideLock),
@@ -82,6 +82,15 @@ impl Drawable for Adapter {
             Adapter::AdapterPlaceHolder(adapter) => {
                 adapter.draw_adding_to_library(library, popup_state, ui)
             }
+        }
+    }
+}
+
+impl IsPlaceholder for Adapter {
+    fn is_placeholder(&self) -> bool {
+        match self {
+            Adapter::AdapterPlaceHolder(adapter) => adapter.is_placeholder(),
+            _ => false,
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::{Drawable, Identifiable, Library, Locatable, PopupState};
 use egui::RichText;
 use uuid::Uuid;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct InternalTurning {
     pub name: String,
     pub id: uuid::Uuid,

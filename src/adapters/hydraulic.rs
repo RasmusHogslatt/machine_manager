@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use super::adapter::Adapter;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct Hydraulic {
     pub name: String,
     pub id: uuid::Uuid,

@@ -1,7 +1,7 @@
-use crate::{tool::*, Drawable, Identifiable, Locatable, PopupState};
+use crate::{tool::*, Drawable, Identifiable, IsPlaceholder, Locatable, PopupState};
 use uuid::Uuid;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolPlaceHolder {
     pub name: String,
     pub id: uuid::Uuid,
@@ -37,5 +37,11 @@ impl Drawable for ToolPlaceHolder {
         _popup_state: &mut PopupState,
         _ui: &mut egui::Ui,
     ) {
+    }
+}
+
+impl IsPlaceholder for ToolPlaceHolder {
+    fn is_placeholder(&self) -> bool {
+        true
     }
 }

@@ -29,6 +29,7 @@ use crate::{
     tool_placeholder::ToolPlaceHolder,
     triangle_insert::TriangleInsert,
     trigon_insert::TrigonInsert,
+    IsPlaceholder,
 };
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -41,8 +42,7 @@ pub struct ManagingApp {
     machines: Vec<Machine>,
     app_state: ApplicationState,
     popup_state: PopupState,
-    selected_machine: (uuid::Uuid, usize),
-    selected_magazine: (uuid::Uuid, usize),
+    selections: Selections,
     // this how you opt-out of serialization of a member
     //#[serde(skip)]
 }
@@ -244,20 +244,20 @@ impl Default for ManagingApp {
                     id: uuid::Uuid::new_v4(),
                     magazine_count: 1,
                     magazines: Vec::new(),
+                    selected_magazine: None,
                 },
-                chosen_magazine_content: MagazineContent::default(),
-                chosen_library_content: LibraryContent::default(),
-                selected_machine: None,
-                selected_magazine: None,
-                selected_magazine_slot: 0,
-                selected_library_slot: 0,
             },
             library: Library::default(),
             machines: Vec::new(),
             app_state: ApplicationState::Home,
             popup_state: PopupState::None,
-            selected_machine: (uuid::Uuid::new_v4(), 0),
-            selected_magazine: (uuid::Uuid::new_v4(), 0),
+            selections: Selections {
+                selected_machine: None,
+                selected_magazine_slot: None,
+                selected_library_slot: None,
+                selected_magazine_content: MagazineContent::ToolContent,
+                selected_library_content: LibraryContent::ToolContent,
+            },
         }
     }
 }
@@ -292,8 +292,7 @@ impl eframe::App for ManagingApp {
             machines,
             app_state: _,
             popup_state,
-            selected_machine,
-            selected_magazine,
+            selections,
         } = self;
 
         // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -314,85 +313,120 @@ impl eframe::App for ManagingApp {
             PopupState::AddHolder => add_holder(gui_resource, library, popup_state, ctx),
             PopupState::AddAdapter => add_adapter(gui_resource, library, popup_state, ctx),
             PopupState::None => {}
-            PopupState::DisplayLibrary => display_library(ctx, gui_resource, library, popup_state),
+            PopupState::DisplayLibrary => display_library(ctx, selections, library, popup_state),
+            PopupState::ChooseFromLibrary => {
+                choose_from_library(selections, ctx, library, popup_state)
+            }
+            PopupState::LibraryToMagazine => {
+                library_to_magazine(machines, library, selections, popup_state)
+            }
+            PopupState::RemoveFromLibrary => remove_from_library(library, selections, popup_state),
         }
-
+        let mut new_popup_state = None;
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Machine Manager");
-            select_machine(machines, selected_machine, ui, gui_resource);
-            select_magazine(
-                machines,
-                selected_machine,
-                selected_magazine,
-                ui,
-                gui_resource,
-            );
+            //select_machine(machines, selected_machine, ui, gui_resource);
+            //select_magazine(machines, selected_machine, ui, gui_resource);
             ui.separator();
             // Buttons to change state for adding stuff
             if ui.button("Show library").clicked() {
-                self.popup_state = PopupState::DisplayLibrary;
+                new_popup_state = Some(PopupState::DisplayLibrary);
             }
             ui.separator();
             if ui.button("Add machine").clicked() {
-                self.popup_state = PopupState::AddMachine;
+                new_popup_state = Some(PopupState::AddMachine);
             }
+            select_machine(machines, ui, selections);
+            select_magazine(machines, selections, ui);
             if ui.button("Add tool").clicked() {
-                self.popup_state = PopupState::AddTool;
+                new_popup_state = Some(PopupState::AddTool);
             }
             if ui.button("Add holder").clicked() {
-                self.popup_state = PopupState::AddHolder;
+                new_popup_state = Some(PopupState::AddHolder);
             }
             if ui.button("Add adapter").clicked() {
-                self.popup_state = PopupState::AddAdapter;
+                new_popup_state = Some(PopupState::AddAdapter);
             }
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            display_machine_ui(
-                machines,
-                selected_machine,
-                selected_magazine,
-                ui,
-                gui_resource,
-            );
-            display_magazine(gui_resource, library, ui, machines);
+            // display_machine_ui(
+            //     machines,
+            //     selected_machine,
+            //     selected_magazine,
+            //     ui,
+            //     gui_resource,
+            // );
+            display_magazine(machines, selections, ui, popup_state);
         });
+        if let Some(state) = new_popup_state {
+            self.popup_state = state;
+        }
     }
 }
 
-pub fn select_machine(
-    machines: &mut Vec<Machine>,
-    selected_machine: &mut (uuid::Uuid, usize),
-    ui: &mut egui::Ui,
-    gui_resource: &mut GuiResource,
-) {
-    let name = if !machines.is_empty() {
-        &machines[selected_machine.1].name
-    } else {
-        "No machines"
-    };
+// OK
+pub fn select_machine(machines: &mut Vec<Machine>, ui: &mut egui::Ui, selections: &mut Selections) {
+    if machines.is_empty() {
+        return;
+    }
+    let mut name = "No machines".to_string();
+    match selections.selected_machine {
+        Some(index) => {
+            name = machines[index].name.clone();
+        }
+        None => {
+            selections.selected_machine = Some(0);
+        }
+    }
+
     egui::ComboBox::from_label("Select machine")
         .selected_text(name)
         .show_ui(ui, |ui| {
             for (i, m) in machines.iter().enumerate() {
                 if ui
-                    .selectable_label(selected_machine.0 == m.id, m.name.clone())
+                    .selectable_label(selections.selected_machine.unwrap() == i, m.name.clone())
                     .clicked()
                 {
-                    selected_machine.1 = i;
-                    selected_machine.0 = machines[i].id;
-                    gui_resource.selected_machine = Some(i as u32);
+                    selections.selected_machine = Some(i);
                 }
             }
         });
 }
 
-pub fn select_magazine(
-    machines: &mut Vec<Machine>,
-    selected_machine: &mut (uuid::Uuid, usize),
-    selected_magazine: &mut (uuid::Uuid, usize),
+// OK
+pub fn select_magazine(machines: &mut [Machine], selections: &mut Selections, ui: &mut egui::Ui) {
+    if let Some(selected_machine_index) = selections.selected_machine {
+        let machine = &mut machines[selected_machine_index];
+
+        if !machine.magazines.is_empty() {
+            let name = match machine.selected_magazine {
+                Some(index) => &machine.magazines[index].name,
+                None => "None selected",
+            };
+
+            egui::ComboBox::from_label("Select magazine")
+                .selected_text(name)
+                .show_ui(ui, |ui| {
+                    for (i, m) in machine.magazines.iter().enumerate() {
+                        let is_selected = machine
+                            .selected_magazine
+                            .map_or(false, |selected_index| selected_index == i);
+
+                        if ui.selectable_label(is_selected, &m.name).clicked() {
+                            machine.selected_magazine = Some(i);
+                        }
+                    }
+                });
+        }
+    }
+}
+
+pub fn display_magazine(
+    machines: &mut [Machine],
+    selections: &mut Selections,
     ui: &mut egui::Ui,
-    gui_resource: &mut GuiResource,
+    popup_state: &mut PopupState,
 ) {
     // get machine index, return if none
     if let Some(machine_index) = selections.selected_machine {
@@ -405,7 +439,6 @@ pub fn select_magazine(
                 ui.label(format!("Capacity: {}", magazine.capacity));
             });
             for (i, (tool, holder, adapter)) in magazine.contents.iter_mut().enumerate() {
-                // TODO: Change to table
                 ui.horizontal(|ui| {
                     // Add button to swap tool, holder and adapter
                     ui.horizontal(|ui| {
@@ -447,78 +480,104 @@ pub fn choose_from_library(
     if popup_state != &PopupState::ChooseFromLibrary {
         return;
     }
-    let machine = &machines[selected_machine.1];
-
-    if !machine.magazines.is_empty() {
-        let name = &machine.magazines[selected_magazine.1].name;
-        egui::ComboBox::from_label("Select magazine")
-            .selected_text(name)
-            .show_ui(ui, |ui| {
-                for (i, m) in machine.magazines.iter().enumerate() {
-                    if ui
-                        .selectable_label(selected_magazine.0 == m.id, m.name.clone())
-                        .clicked()
-                    {
-                        selected_magazine.0 = machine.magazines[i].id;
-                        selected_magazine.1 = i;
-                        gui_resource.selected_magazine = Some(i as u32);
-                    }
+    // set selections library index
+    match selections.selected_magazine_content {
+        MagazineContent::ToolContent => {
+            egui::Window::new("Pick Tool").show(egui_ctx, |ui| {
+                for (i, tool) in &mut library.tools.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        tool.draw_display(ui);
+                        if ui.button("Choose").clicked() {
+                            // Change tool in magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::LibraryToMagazine;
+                        }
+                    });
                 }
             });
-    }
-}
-
-pub fn display_machine_ui(
-    machines: &mut Vec<Machine>,
-    selected_machine: &mut (uuid::Uuid, usize),
-    selected_magazine: &mut (uuid::Uuid, usize),
-    ui: &mut egui::Ui,
-    gui_resource: &mut GuiResource,
-) {
-    if machines.len() < selected_machine.1 || machines.is_empty() {
-    } else {
-        let current_machine = &machines[selected_machine.1];
-        let current_magazine = current_machine.magazines.get(selected_magazine.1);
-
-        ui.heading(format!("Machine: {}", current_machine.name));
-        ui.horizontal(|ui| {
-            ui.label(format!(
-                "Magazine count: {}",
-                current_machine.magazine_count
-            ));
-            ui.label(format!(
-                "with capacity: {}",
-                current_machine.magazines.len()
-            ));
-        });
-
-        if let Some(_current_magazine) = current_magazine {
-            // Choose what magazine content to display: tools, holders or adapters with radio buttons
-            ui.horizontal(|ui| {
-                ui.radio_value(
-                    &mut gui_resource.chosen_magazine_content,
-                    MagazineContent::ToolContent,
-                    "Tools",
-                );
-                ui.radio_value(
-                    &mut gui_resource.chosen_magazine_content,
-                    MagazineContent::HolderContent,
-                    "Holders",
-                );
-                ui.radio_value(
-                    &mut gui_resource.chosen_magazine_content,
-                    MagazineContent::AdapterContent,
-                    "Adapters",
-                );
+        }
+        MagazineContent::HolderContent => {
+            egui::Window::new("Pick Holder").show(egui_ctx, |ui| {
+                for (i, holder) in &mut library.holders.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        holder.draw_display(ui);
+                        if ui.button("Choose").clicked() {
+                            // Change holder in magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::LibraryToMagazine;
+                        }
+                    });
+                }
             });
-            // call function to print magazine vectors based on chosen_magazine_content
+        }
+        MagazineContent::AdapterContent => {
+            egui::Window::new("Pick Adapter").show(egui_ctx, |ui| {
+                for (i, adapter) in &mut library.adapters.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        adapter.draw_display(ui);
+                        if ui.button("Choose").clicked() {
+                            // Change adapter in magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::LibraryToMagazine;
+                        }
+                    });
+                }
+            });
         }
     }
 }
 
+// pub fn display_machine_ui(
+//     machines: &mut Vec<Machine>,
+//     selected_machine: &mut (uuid::Uuid, usize),
+//     selected_magazine: &mut (uuid::Uuid, usize),
+//     ui: &mut egui::Ui,
+//     gui_resource: &mut GuiResource,
+// ) {
+//     if machines.len() < selected_machine.1 || machines.is_empty() {
+//     } else {
+//         let current_machine = &machines[selected_machine.1];
+//         let current_magazine = current_machine.magazines.get(selected_magazine.1);
+
+//         ui.heading(format!("Machine: {}", current_machine.name));
+//         ui.horizontal(|ui| {
+//             ui.label(format!(
+//                 "Magazine count: {}",
+//                 current_machine.magazine_count
+//             ));
+//             ui.label(format!(
+//                 "with capacity: {}",
+//                 current_machine.magazines.len()
+//             ));
+//         });
+
+//         if let Some(_current_magazine) = current_magazine {
+//             // Choose what magazine content to display: tools, holders or adapters with radio buttons
+//             ui.horizontal(|ui| {
+//                 ui.radio_value(
+//                     &mut gui_resource.chosen_magazine_content,
+//                     MagazineContent::ToolContent,
+//                     "Tools",
+//                 );
+//                 ui.radio_value(
+//                     &mut gui_resource.chosen_magazine_content,
+//                     MagazineContent::HolderContent,
+//                     "Holders",
+//                 );
+//                 ui.radio_value(
+//                     &mut gui_resource.chosen_magazine_content,
+//                     MagazineContent::AdapterContent,
+//                     "Adapters",
+//                 );
+//             });
+//             // call function to print magazine vectors based on chosen_magazine_content
+//         }
+//     }
+// }
+
 pub fn display_library(
     ctx: &egui::Context,
-    gui_resource: &mut GuiResource,
+    selections: &mut Selections,
     library: &mut Library,
     popup_state: &mut PopupState,
 ) {
@@ -529,45 +588,65 @@ pub fn display_library(
         ui.horizontal(|ui| {
             // use radio buttons to choose what to display: (tools, holders, adapters)
             ui.radio_value(
-                &mut gui_resource.chosen_library_content,
+                &mut selections.selected_library_content,
                 LibraryContent::ToolContent,
                 "Tools",
             );
             ui.radio_value(
-                &mut gui_resource.chosen_library_content,
+                &mut selections.selected_library_content,
                 LibraryContent::HolderContent,
                 "Holders",
             );
             ui.radio_value(
-                &mut gui_resource.chosen_library_content,
+                &mut selections.selected_library_content,
                 LibraryContent::AdapterContent,
                 "Adapters",
             );
         });
-        match gui_resource.chosen_library_content {
+        match selections.selected_library_content {
             LibraryContent::ToolContent => {
                 // print tools
-                for tool in &mut library.tools {
+                for (i, tool) in &mut library.tools.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         tool.draw_display(ui);
                         // show slot position in library tools vector
 
                         if ui.button("Delete").clicked() {
                             // Delete tool. Moving to library should be done from display_magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::RemoveFromLibrary;
                         }
                     });
                 }
             }
             LibraryContent::HolderContent => {
                 // print holders
-                for holder in &mut library.holders {
-                    holder.draw_display(ui);
+                for (i, holder) in &mut library.holders.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        holder.draw_display(ui);
+                        // show slot position in library tools vector
+
+                        if ui.button("Delete").clicked() {
+                            // Delete tool. Moving to library should be done from display_magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::RemoveFromLibrary;
+                        }
+                    });
                 }
             }
             LibraryContent::AdapterContent => {
                 // print adapters
-                for adapter in &mut library.adapters {
-                    adapter.draw_display(ui);
+                for (i, adapter) in &mut library.adapters.iter_mut().enumerate() {
+                    ui.horizontal(|ui| {
+                        adapter.draw_display(ui);
+                        // show slot position in library tools vector
+
+                        if ui.button("Delete").clicked() {
+                            // Delete tool. Moving to library should be done from display_magazine
+                            selections.selected_library_slot = Some(i);
+                            *popup_state = PopupState::RemoveFromLibrary;
+                        }
+                    });
                 }
             }
         }
@@ -894,4 +973,89 @@ pub fn add_adapter(
             (_, _) => {}
         }
     });
+}
+
+pub fn library_to_magazine(
+    machines: &mut [Machine],
+    library: &mut Library,
+    selections: &mut Selections,
+    popup_state: &mut PopupState,
+) {
+    if popup_state != &PopupState::LibraryToMagazine {
+        return;
+    }
+    if let Some(machine_index) = selections.selected_machine {
+        let machine = &mut machines[machine_index];
+        if let Some(magazine_index) = machine.selected_magazine {
+            let magazine = &mut machine.magazines[magazine_index];
+            if let Some(library_slot) = selections.selected_library_slot {
+                if let Some(magazine_slot) = selections.selected_magazine_slot {
+                    match selections.selected_magazine_content {
+                        MagazineContent::ToolContent => {
+                            let tool = library.tools.remove(library_slot);
+                            if magazine.contents[magazine_slot].0.is_placeholder() {
+                                magazine.contents[magazine_slot].0 = tool;
+                            } else {
+                                let replaced_tool = magazine.contents[magazine_slot].0.clone();
+                                library.tools.push(replaced_tool);
+                                magazine.contents[magazine_slot].0 = tool;
+                            }
+                            selections.selected_magazine_slot = None;
+                            *popup_state = PopupState::None;
+                        }
+                        MagazineContent::HolderContent => {
+                            let holder = library.holders.remove(library_slot);
+                            if magazine.contents[magazine_slot].1.is_placeholder() {
+                                magazine.contents[magazine_slot].1 = holder;
+                            } else {
+                                let replaced_tool = magazine.contents[magazine_slot].0.clone();
+                                library.tools.push(replaced_tool);
+                                magazine.contents[magazine_slot].1 = holder;
+                            }
+                            selections.selected_magazine_slot = None;
+                            *popup_state = PopupState::None;
+                        }
+                        MagazineContent::AdapterContent => {
+                            let adapter = library.adapters.remove(library_slot);
+                            if magazine.contents[magazine_slot].2.is_placeholder() {
+                                magazine.contents[magazine_slot].2 = adapter;
+                            } else {
+                                let replaced_tool = magazine.contents[magazine_slot].0.clone();
+                                library.tools.push(replaced_tool);
+                                magazine.contents[magazine_slot].2 = adapter;
+                            }
+                            selections.selected_magazine_slot = None;
+                            *popup_state = PopupState::None;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+pub fn remove_from_library(
+    library: &mut Library,
+    selections: &mut Selections,
+    popup_state: &mut PopupState,
+) {
+    if let Some(library_slot) = selections.selected_library_slot {
+        match selections.selected_library_content {
+            LibraryContent::ToolContent => {
+                library.tools.remove(library_slot);
+                selections.selected_library_slot = None;
+                *popup_state = PopupState::DisplayLibrary;
+            }
+            LibraryContent::HolderContent => {
+                library.holders.remove(library_slot);
+                selections.selected_library_slot = None;
+                *popup_state = PopupState::DisplayLibrary;
+            }
+            LibraryContent::AdapterContent => {
+                library.adapters.remove(library_slot);
+                selections.selected_library_slot = None;
+                *popup_state = PopupState::DisplayLibrary;
+            }
+        }
+    }
 }

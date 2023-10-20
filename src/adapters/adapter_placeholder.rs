@@ -1,10 +1,9 @@
-use crate::{adapter::*, Drawable, Identifiable, Library, Locatable, PopupState};
-use egui::RichText;
+use crate::{adapter::*, Drawable, Identifiable, IsPlaceholder, Library, Locatable, PopupState};
 use uuid::Uuid;
 
 use super::adapter::Adapter;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct AdapterPlaceHolder {
     pub name: String,
     pub id: uuid::Uuid,
@@ -31,13 +30,7 @@ impl Locatable for AdapterPlaceHolder {
 
 impl Drawable for AdapterPlaceHolder {
     fn draw_display(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.label(RichText::new("Place Holder").underline().strong());
-            ui.horizontal(|ui| {
-                ui.label("Name: ");
-                ui.label(&self.name);
-            });
-        });
+        ui.label("I am an empty adapter");
     }
     fn draw_edit(&mut self, ui: &mut egui::Ui) {
         ui.label("Place Holder");
@@ -64,5 +57,11 @@ impl Drawable for AdapterPlaceHolder {
                 *popup_state = PopupState::None;
             }
         });
+    }
+}
+
+impl IsPlaceholder for AdapterPlaceHolder {
+    fn is_placeholder(&self) -> bool {
+        true
     }
 }

@@ -2,8 +2,8 @@ use uuid::Uuid;
 
 use crate::{
     circular_insert::*, diamond_insert::*, drill::*, mill::*, square_insert::*,
-    tool_placeholder::*, triangle_insert::*, trigon_insert::*, Drawable, Identifiable, Library,
-    Locatable, PopupState,
+    tool_placeholder::*, triangle_insert::*, trigon_insert::*, Drawable, Identifiable,
+    IsPlaceholder, Library, Locatable, PopupState,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -123,6 +123,15 @@ impl Drawable for Tool {
             Tool::DiamondInsert(diamond_insert) => {
                 diamond_insert.draw_adding_to_library(library, popup_state, ui)
             }
+        }
+    }
+}
+
+impl IsPlaceholder for Tool {
+    fn is_placeholder(&self) -> bool {
+        match self {
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.is_placeholder(),
+            _ => false,
         }
     }
 }

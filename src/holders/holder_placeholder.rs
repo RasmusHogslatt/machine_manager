@@ -1,9 +1,8 @@
 use super::holder::*;
-use crate::{Drawable, Identifiable, Library, Locatable, PopupState};
-use egui::RichText;
+use crate::{Drawable, Identifiable, IsPlaceholder, Locatable, PopupState};
 use uuid::Uuid;
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub struct HolderPlaceHolder {
     pub name: String,
     pub id: uuid::Uuid,
@@ -39,5 +38,11 @@ impl Drawable for HolderPlaceHolder {
         _popup_state: &mut PopupState,
         _ui: &mut egui::Ui,
     ) {
+    }
+}
+
+impl IsPlaceholder for HolderPlaceHolder {
+    fn is_placeholder(&self) -> bool {
+        true
     }
 }

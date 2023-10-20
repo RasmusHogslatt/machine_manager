@@ -3,7 +3,7 @@ use uuid::Uuid;
 use crate::{
     collet::*, drill_chuck::*, end_mill::*, external_turning::*, grooving_parting::*,
     holder_placeholder::*, internal_turning::*, tapping::*, threading::*, Drawable, Identifiable,
-    Library, Locatable, PopupState,
+    IsPlaceholder, Library, Locatable, PopupState,
 };
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum HolderCategory {
@@ -146,6 +146,15 @@ impl Drawable for Holder {
             Holder::HolderPlaceHolder(place_holder_holder) => {
                 place_holder_holder.draw_adding_to_library(library, popup_state, ui)
             }
+        }
+    }
+}
+
+impl IsPlaceholder for Holder {
+    fn is_placeholder(&self) -> bool {
+        match self {
+            Holder::HolderPlaceHolder(place_holder_holder) => place_holder_holder.is_placeholder(),
+            _ => false,
         }
     }
 }
