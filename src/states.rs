@@ -14,4 +14,7 @@ pub enum PopupState {
     AddHolder,
     AddAdapter,
     DisplayLibrary,
+    ChooseFromLibrary,
+    LibraryToMagazine,
+    RemoveFromLibrary,
 }

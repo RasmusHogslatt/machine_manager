@@ -10,6 +10,16 @@ use crate::{
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct Selections {
+    pub selected_machine: Option<usize>, // Index to what machine is selected
+    pub selected_magazine_slot: Option<usize>, // What slot is selected in magazine
+    pub selected_library_slot: Option<usize>, // What slot is selected in library
+    pub selected_magazine_content: MagazineContent, // Category being accessed
+    pub selected_library_content: LibraryContent, // Category being accessed
+}
+
+// Single instances of all items possible
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct GuiResource {
     pub tool_category: ToolCategory,
     pub tool_selected: Tool,
@@ -44,12 +54,6 @@ pub struct GuiResource {
     // machine
     pub machine: Machine,
     pub magazine: Magazine,
-    pub chosen_magazine_content: MagazineContent,
-    pub chosen_library_content: LibraryContent, // What type of content is moved
-    pub selected_machine: Option<u32>,          // To/From what machine
-    pub selected_magazine: Option<u32>,         // To/From what magazine
-    pub selected_magazine_slot: u32,            // At slot
-    pub selected_library_slot: u32,             // At slot
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]

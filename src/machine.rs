@@ -1,9 +1,7 @@
-use egui::{gui_zoom, Ui};
-
 use crate::{
     adapter::*, adapter_placeholder::AdapterPlaceHolder, holder::*,
     holder_placeholder::HolderPlaceHolder, magazine::*, resources::*, states::*, tool::*,
-    tool_placeholder::ToolPlaceHolder, Library,
+    tool_placeholder::ToolPlaceHolder,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -12,6 +10,7 @@ pub struct Machine {
     pub id: uuid::Uuid,
     pub magazine_count: usize,
     pub magazines: Vec<Magazine>,
+    pub selected_magazine: Option<usize>,
 }
 
 impl PartialEq for Machine {
@@ -26,6 +25,9 @@ pub fn add_machine(
     popup_state: &mut PopupState,
     ctx: &egui::Context,
 ) {
+    if popup_state != &PopupState::AddMachine {
+        return;
+    }
     egui::Window::new("Add Machine").show(ctx, |ui| {
         ui.label("Machine name:");
         ui.text_edit_singleline(&mut gui_resource.machine.name);
@@ -95,6 +97,7 @@ pub fn add_machine(
                     id: uuid::Uuid::new_v4(),
                     magazine_count: 1,
                     magazines: Vec::new(),
+                    selected_magazine: None,
                 };
 
                 *popup_state = PopupState::None;
@@ -103,21 +106,13 @@ pub fn add_machine(
     });
 }
 
-pub fn display_magazine(
-    gui_resource: &mut GuiResource,
-    _library: &mut Library,
-    ui: &mut Ui,
-    machines: &mut Vec<Machine>,
-) {
-    ui.label("From display magazine");
-    // get current magazine
-    // create variable for machine index and magazine index if they are some
-    if let (Some(machine_index), Some(magazine_index)) = (
-        gui_resource.selected_machine,
-        gui_resource.selected_magazine,
-    ) {
-        let magazine = &mut machines[machine_index as usize].magazines[magazine_index as usize];
-        // display magazine name
-        ui.label(&magazine.location_slot.to_string());
-    }
-}
+// pub fn display_magazine(
+//     gui_resource: &mut GuiResource,
+//     _library: &mut Library,
+//     ui: &mut Ui,
+//     machines: &mut Vec<Machine>,
+// ) {
+//     ui.label("From display magazine");
+//     // get current magazine
+//     // create variable for machine index and magazine index if they are some
+// }
