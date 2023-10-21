@@ -105,14 +105,3 @@ pub fn add_machine(
         });
     });
 }
-
-// pub fn display_magazine(
-//     gui_resource: &mut GuiResource,
-//     _library: &mut Library,
-//     ui: &mut Ui,
-//     machines: &mut Vec<Machine>,
-// ) {
-//     ui.label("From display magazine");
-//     // get current magazine
-//     // create variable for machine index and magazine index if they are some
-// }

@@ -325,10 +325,7 @@ impl eframe::App for ManagingApp {
         let mut new_popup_state = None;
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             ui.heading("Machine Manager");
-            //select_machine(machines, selected_machine, ui, gui_resource);
-            //select_magazine(machines, selected_machine, ui, gui_resource);
             ui.separator();
-            // Buttons to change state for adding stuff
             if ui.button("Show library").clicked() {
                 new_popup_state = Some(PopupState::DisplayLibrary);
             }
@@ -350,13 +347,6 @@ impl eframe::App for ManagingApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // display_machine_ui(
-            //     machines,
-            //     selected_machine,
-            //     selected_magazine,
-            //     ui,
-            //     gui_resource,
-            // );
             display_magazine(machines, selections, ui, popup_state);
         });
         if let Some(state) = new_popup_state {
@@ -434,39 +424,45 @@ pub fn display_magazine(
         // get magazine index, return if none
         if let Some(magazine_index) = machine.selected_magazine {
             let magazine = &mut machine.magazines[magazine_index];
-            ui.label(format!("Magazine: {}", magazine.name));
             ui.horizontal(|ui| {
-                ui.label(format!("Capacity: {}", magazine.capacity));
+                ui.heading(magazine.name.to_string());
+                ui.separator();
+                ui.heading(format!("Capacity: {}", magazine.capacity));
             });
-            for (i, (tool, holder, adapter)) in magazine.contents.iter_mut().enumerate() {
-                ui.horizontal(|ui| {
-                    // Add button to swap tool, holder and adapter
-                    ui.horizontal(|ui| {
-                        tool.draw_display(ui);
-                        if ui.button("Swap tool").clicked() {
+            ui.separator();
+            ui.columns(4, |ui| {
+                ui[0].heading("Slot");
+                ui[1].heading("Tool");
+                ui[2].heading("Holder");
+                ui[3].heading("Adapter");
+                for (i, (tool, holder, adapter)) in magazine.contents.iter_mut().enumerate() {
+                    ui[0].label(format!("{}", i));
+                    ui[1].horizontal(|ui| {
+                        if ui.button("Swap").clicked() {
                             selections.selected_magazine_content = MagazineContent::ToolContent;
                             selections.selected_magazine_slot = Some(i);
                             *popup_state = PopupState::ChooseFromLibrary;
                         }
+                        tool.draw_display(ui);
                     });
-                    ui.horizontal(|ui| {
-                        holder.draw_display(ui);
-                        if ui.button("Swap holder").clicked() {
+                    ui[2].horizontal(|ui| {
+                        if ui.button("Swap").clicked() {
                             selections.selected_magazine_content = MagazineContent::HolderContent;
                             selections.selected_magazine_slot = Some(i);
                             *popup_state = PopupState::ChooseFromLibrary;
                         }
+                        holder.draw_display(ui);
                     });
-                    ui.horizontal(|ui| {
-                        adapter.draw_display(ui);
-                        if ui.button("Swap adapter").clicked() {
+                    ui[3].horizontal(|ui| {
+                        if ui.button("Swap").clicked() {
                             selections.selected_magazine_content = MagazineContent::AdapterContent;
                             selections.selected_magazine_slot = Some(i);
                             *popup_state = PopupState::ChooseFromLibrary;
                         }
+                        adapter.draw_display(ui);
                     });
-                });
-            }
+                }
+            });
         }
     }
 }

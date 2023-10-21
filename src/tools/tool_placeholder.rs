@@ -28,7 +28,7 @@ impl Locatable for ToolPlaceHolder {
 
 impl Drawable for ToolPlaceHolder {
     fn draw_display(&mut self, ui: &mut egui::Ui) {
-        ui.label("I am an empty tool");
+        ui.label("EMPTY");
     }
     fn draw_edit(&mut self, _ui: &mut egui::Ui) {}
     fn draw_adding_to_library(

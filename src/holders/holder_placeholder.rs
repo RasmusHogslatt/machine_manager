@@ -29,7 +29,7 @@ impl Locatable for HolderPlaceHolder {
 
 impl Drawable for HolderPlaceHolder {
     fn draw_display(&mut self, ui: &mut egui::Ui) {
-        ui.label("I am an empty holder");
+        ui.label("EMPTY");
     }
     fn draw_edit(&mut self, _ui: &mut egui::Ui) {}
     fn draw_adding_to_library(

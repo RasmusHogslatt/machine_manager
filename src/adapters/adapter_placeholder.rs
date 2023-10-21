@@ -30,7 +30,7 @@ impl Locatable for AdapterPlaceHolder {
 
 impl Drawable for AdapterPlaceHolder {
     fn draw_display(&mut self, ui: &mut egui::Ui) {
-        ui.label("I am an empty adapter");
+        ui.label("EMPTY");
     }
     fn draw_edit(&mut self, ui: &mut egui::Ui) {
         ui.label("Place Holder");
