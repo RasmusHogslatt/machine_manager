@@ -1,3 +1,5 @@
+use genpdf::elements::Paragraph;
+
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -15,7 +17,7 @@ use crate::{
     hydraulic::Hydraulic,
     internal_turning::InternalTurning,
     library::*,
-    machine::*,
+    machine::{self, *},
     magazine::*,
     mill::Mill,
     resources::*,
@@ -43,6 +45,8 @@ pub struct ManagingApp {
     app_state: ApplicationState,
     popup_state: PopupState,
     selections: Selections,
+    pdf_fields: PDFFields,
+    pdf_settings: PDFSettings,
     // this how you opt-out of serialization of a member
     //#[serde(skip)]
 }
@@ -258,6 +262,13 @@ impl Default for ManagingApp {
                 selected_magazine_content: MagazineContent::ToolContent,
                 selected_library_content: LibraryContent::ToolContent,
             },
+            pdf_fields: PDFFields {
+                title: "".to_string(),
+                operator: "".to_string(),
+                part: "".to_string(),
+                revision: "".to_string(),
+            },
+            pdf_settings: PDFSettings {},
         }
     }
 }
@@ -293,6 +304,8 @@ impl eframe::App for ManagingApp {
             app_state: _,
             popup_state,
             selections,
+            pdf_fields,
+            pdf_settings,
         } = self;
 
         // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
@@ -321,6 +334,14 @@ impl eframe::App for ManagingApp {
                 library_to_magazine(machines, library, selections, popup_state)
             }
             PopupState::RemoveFromLibrary => remove_from_library(library, selections, popup_state),
+            PopupState::GeneratePDF => generate_pdf(
+                selections,
+                machines,
+                popup_state,
+                ctx,
+                pdf_fields,
+                pdf_settings,
+            ),
         }
         let mut new_popup_state = None;
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
@@ -343,6 +364,9 @@ impl eframe::App for ManagingApp {
             }
             if ui.button("Add adapter").clicked() {
                 new_popup_state = Some(PopupState::AddAdapter);
+            }
+            if ui.button("Generate PDF").clicked() {
+                new_popup_state = Some(PopupState::GeneratePDF);
             }
         });
 
@@ -476,7 +500,6 @@ pub fn choose_from_library(
     if popup_state != &PopupState::ChooseFromLibrary {
         return;
     }
-    // set selections library index
     match selections.selected_magazine_content {
         MagazineContent::ToolContent => {
             egui::Window::new("Pick Tool").show(egui_ctx, |ui| {
@@ -484,11 +507,17 @@ pub fn choose_from_library(
                     ui.horizontal(|ui| {
                         tool.draw_display(ui);
                         if ui.button("Choose").clicked() {
-                            // Change tool in magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::LibraryToMagazine;
                         }
                     });
+                }
+                if ui.button("Cancel").clicked() {
+                    *popup_state = PopupState::None;
+                    selections.selected_library_slot = None;
+                    selections.selected_magazine_slot = None;
+                    selections.selected_magazine_content = MagazineContent::ToolContent;
+                    selections.selected_machine = None;
                 }
             });
         }
@@ -498,11 +527,17 @@ pub fn choose_from_library(
                     ui.horizontal(|ui| {
                         holder.draw_display(ui);
                         if ui.button("Choose").clicked() {
-                            // Change holder in magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::LibraryToMagazine;
                         }
                     });
+                }
+                if ui.button("Cancel").clicked() {
+                    *popup_state = PopupState::None;
+                    selections.selected_library_slot = None;
+                    selections.selected_magazine_slot = None;
+                    selections.selected_magazine_content = MagazineContent::ToolContent;
+                    selections.selected_machine = None;
                 }
             });
         }
@@ -512,64 +547,22 @@ pub fn choose_from_library(
                     ui.horizontal(|ui| {
                         adapter.draw_display(ui);
                         if ui.button("Choose").clicked() {
-                            // Change adapter in magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::LibraryToMagazine;
                         }
                     });
                 }
+                if ui.button("Cancel").clicked() {
+                    *popup_state = PopupState::None;
+                    selections.selected_library_slot = None;
+                    selections.selected_magazine_slot = None;
+                    selections.selected_magazine_content = MagazineContent::ToolContent;
+                    selections.selected_machine = None;
+                }
             });
         }
     }
 }
-
-// pub fn display_machine_ui(
-//     machines: &mut Vec<Machine>,
-//     selected_machine: &mut (uuid::Uuid, usize),
-//     selected_magazine: &mut (uuid::Uuid, usize),
-//     ui: &mut egui::Ui,
-//     gui_resource: &mut GuiResource,
-// ) {
-//     if machines.len() < selected_machine.1 || machines.is_empty() {
-//     } else {
-//         let current_machine = &machines[selected_machine.1];
-//         let current_magazine = current_machine.magazines.get(selected_magazine.1);
-
-//         ui.heading(format!("Machine: {}", current_machine.name));
-//         ui.horizontal(|ui| {
-//             ui.label(format!(
-//                 "Magazine count: {}",
-//                 current_machine.magazine_count
-//             ));
-//             ui.label(format!(
-//                 "with capacity: {}",
-//                 current_machine.magazines.len()
-//             ));
-//         });
-
-//         if let Some(_current_magazine) = current_magazine {
-//             // Choose what magazine content to display: tools, holders or adapters with radio buttons
-//             ui.horizontal(|ui| {
-//                 ui.radio_value(
-//                     &mut gui_resource.chosen_magazine_content,
-//                     MagazineContent::ToolContent,
-//                     "Tools",
-//                 );
-//                 ui.radio_value(
-//                     &mut gui_resource.chosen_magazine_content,
-//                     MagazineContent::HolderContent,
-//                     "Holders",
-//                 );
-//                 ui.radio_value(
-//                     &mut gui_resource.chosen_magazine_content,
-//                     MagazineContent::AdapterContent,
-//                     "Adapters",
-//                 );
-//             });
-//             // call function to print magazine vectors based on chosen_magazine_content
-//         }
-//     }
-// }
 
 pub fn display_library(
     ctx: &egui::Context,
@@ -582,7 +575,6 @@ pub fn display_library(
     }
     egui::Window::new("Library").show(ctx, |ui| {
         ui.horizontal(|ui| {
-            // use radio buttons to choose what to display: (tools, holders, adapters)
             ui.radio_value(
                 &mut selections.selected_library_content,
                 LibraryContent::ToolContent,
@@ -601,14 +593,10 @@ pub fn display_library(
         });
         match selections.selected_library_content {
             LibraryContent::ToolContent => {
-                // print tools
                 for (i, tool) in &mut library.tools.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         tool.draw_display(ui);
-                        // show slot position in library tools vector
-
                         if ui.button("Delete").clicked() {
-                            // Delete tool. Moving to library should be done from display_magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::RemoveFromLibrary;
                         }
@@ -616,14 +604,10 @@ pub fn display_library(
                 }
             }
             LibraryContent::HolderContent => {
-                // print holders
                 for (i, holder) in &mut library.holders.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         holder.draw_display(ui);
-                        // show slot position in library tools vector
-
                         if ui.button("Delete").clicked() {
-                            // Delete tool. Moving to library should be done from display_magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::RemoveFromLibrary;
                         }
@@ -631,14 +615,10 @@ pub fn display_library(
                 }
             }
             LibraryContent::AdapterContent => {
-                // print adapters
                 for (i, adapter) in &mut library.adapters.iter_mut().enumerate() {
                     ui.horizontal(|ui| {
                         adapter.draw_display(ui);
-                        // show slot position in library tools vector
-
                         if ui.button("Delete").clicked() {
-                            // Delete tool. Moving to library should be done from display_magazine
                             selections.selected_library_slot = Some(i);
                             *popup_state = PopupState::RemoveFromLibrary;
                         }
@@ -676,7 +656,6 @@ pub fn add_tool(
         });
         match gui_resource.tool_category {
             ToolCategory::Rotating => {
-                // if rotating, choose drill or mill as tool_selected
                 ui.horizontal(|ui| {
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
@@ -691,7 +670,6 @@ pub fn add_tool(
                 });
             }
             ToolCategory::LatheInsert => {
-                // if latheinsert, choose insert as tool_selected
                 ui.horizontal(|ui| {
                     ui.radio_value(
                         &mut gui_resource.tool_selected,
@@ -1053,5 +1031,64 @@ pub fn remove_from_library(
                 *popup_state = PopupState::DisplayLibrary;
             }
         }
+    }
+}
+
+pub fn generate_pdf(
+    selections: &mut Selections,
+    machines: &mut Vec<Machine>,
+    popup_state: &mut PopupState,
+    egui_ctx: &egui::Context,
+    pdf_fields: &mut PDFFields,
+    pdf_settings: &mut PDFSettings,
+) {
+    if *popup_state != PopupState::GeneratePDF {
+        return;
+    }
+    if let Some(machine_index) = selections.selected_machine {
+        let machine = &mut machines[machine_index];
+        egui::Window::new("Generate PDF").show(egui_ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.label("Title");
+                ui.text_edit_singleline(&mut pdf_fields.title);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Operator");
+                ui.text_edit_singleline(&mut pdf_fields.operator);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Part");
+                ui.text_edit_singleline(&mut pdf_fields.part);
+            });
+            ui.horizontal(|ui| {
+                ui.label("Revision");
+                ui.text_edit_singleline(&mut pdf_fields.revision);
+            });
+            if ui.button("Generate").clicked() {
+                match genpdf::fonts::from_files("./fonts", "PTSans", None) {
+                    Ok(font_family) => {
+                        let mut doc = genpdf::Document::new(font_family);
+                        let mut decorator = genpdf::SimplePageDecorator::new();
+                        decorator.set_margins(10);
+                        doc.set_page_decorator(decorator);
+                        doc.set_title(pdf_fields.title.clone());
+                        doc.push(Paragraph::new(format!("Operator: {}", pdf_fields.operator)));
+                        doc.push(Paragraph::new(format!("Part: {}", pdf_fields.part)));
+                        doc.push(Paragraph::new(format!("Revision: {}", pdf_fields.revision)));
+                        doc.push(Paragraph::new(format!("Machine: {}", machine.name)));
+                        // Render the document and write it to a file
+                        doc.render_to_file("output.pdf")
+                            .expect("Failed to write PDF file");
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to load font family: {:?}", e);
+                    }
+                }
+            }
+
+            if ui.button("Cancel").clicked() {
+                *popup_state = PopupState::None;
+            }
+        });
     }
 }

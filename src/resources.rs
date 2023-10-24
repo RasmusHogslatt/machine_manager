@@ -71,3 +71,14 @@ pub enum LibraryContent {
     HolderContent,
     AdapterContent,
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct PDFFields {
+    pub title: String,
+    pub operator: String,
+    pub part: String,
+    pub revision: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct PDFSettings {}

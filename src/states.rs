@@ -17,4 +17,5 @@ pub enum PopupState {
     ChooseFromLibrary,
     LibraryToMagazine,
     RemoveFromLibrary,
+    GeneratePDF,
 }

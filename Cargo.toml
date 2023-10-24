@@ -15,6 +15,7 @@ eframe = { version = "0.23.0", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4"
+genpdf = "0.2.0"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
@@ -28,7 +29,9 @@ env_logger = "0.10"
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = "0.4"
+stdweb = "0.4.20"
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
 getrandom = { version = "0.2", features = ["js"] }
 
 
