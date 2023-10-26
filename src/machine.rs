@@ -1,4 +1,8 @@
-use crate::{adapter::*, holder::*, magazine::*, resources::*, states::*, tool::*};
+use crate::{
+    adapter::*, adapter_placeholder::AdapterPlaceHolder, holder::*,
+    holder_placeholder::HolderPlaceHolder, magazine::*, resources::*, states::*, tool::*,
+    tool_placeholder::ToolPlaceHolder,
+};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct Machine {
@@ -6,6 +10,7 @@ pub struct Machine {
     pub id: uuid::Uuid,
     pub magazine_count: usize,
     pub magazines: Vec<Magazine>,
+    pub selected_magazine: Option<usize>,
 }
 
 impl PartialEq for Machine {
@@ -20,14 +25,14 @@ pub fn add_machine(
     popup_state: &mut PopupState,
     ctx: &egui::Context,
 ) {
+    if popup_state != &PopupState::AddMachine {
+        return;
+    }
     egui::Window::new("Add Machine").show(ctx, |ui| {
-        // UI elements to collect machine properties
         ui.label("Machine name:");
         ui.text_edit_singleline(&mut gui_resource.machine.name);
-
         ui.label("Magazine count:");
         ui.add(egui::DragValue::new(&mut gui_resource.machine.magazine_count).speed(1.0));
-
         // Generate machine ID. This is added to items in magazine
         gui_resource.machine.id = uuid::Uuid::new_v4();
 
@@ -41,32 +46,35 @@ pub fn add_machine(
             let mut placeholder_tools: Vec<Tool> = Vec::new();
             let mut placeholder_holders: Vec<Holder> = Vec::new();
             let mut placeholder_adapters: Vec<Adapter> = Vec::new();
+            gui_resource.magazine.contents = Vec::new();
             for i in 0..gui_resource.magazine.capacity {
-                placeholder_tools.push(Tool::PlaceHolderTool(PlaceHolderTool {
+                placeholder_tools.push(Tool::ToolPlaceHolder(ToolPlaceHolder {
                     name: format!("Empty tool {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
                     location_slot: i,
                     category: ToolCategory::Empty,
                 }));
-                placeholder_holders.push(Holder::PlaceHolderHolder(PlaceHolderHolder {
+                placeholder_holders.push(Holder::HolderPlaceHolder(HolderPlaceHolder {
                     name: format!("Empty holder {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
                     location_slot: i,
                     category: HolderCategory::Empty,
                 }));
-                placeholder_adapters.push(Adapter::PlaceHolderAdapter(PlaceHolderAdapter {
+                placeholder_adapters.push(Adapter::AdapterPlaceHolder(AdapterPlaceHolder {
                     name: format!("Empty adapter {}", i).to_string(),
                     id: uuid::Uuid::new_v4(),
                     location_id: gui_resource.machine.id,
                     location_slot: i,
                     category: AdapterCategory::Empty,
                 }));
+                gui_resource.magazine.contents.push((
+                    placeholder_tools[i].clone(),
+                    placeholder_holders[i].clone(),
+                    placeholder_adapters[i].clone(),
+                ));
             }
-            gui_resource.magazine.tools = placeholder_tools;
-            gui_resource.magazine.holders = placeholder_holders;
-            gui_resource.magazine.adapters = placeholder_adapters;
         }
         ui.horizontal(|ui| {
             if ui.button("Cancel").clicked() {
@@ -89,7 +97,9 @@ pub fn add_machine(
                     id: uuid::Uuid::new_v4(),
                     magazine_count: 1,
                     magazines: Vec::new(),
+                    selected_magazine: None,
                 };
+
                 *popup_state = PopupState::None;
             }
         });
