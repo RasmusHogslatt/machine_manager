@@ -1,5 +1,3 @@
-use genpdf::elements::Paragraph;
-
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -1065,25 +1063,25 @@ pub fn generate_pdf(
                 ui.text_edit_singleline(&mut pdf_fields.revision);
             });
             if ui.button("Generate").clicked() {
-                match genpdf::fonts::from_files("./fonts", "PTSans", None) {
-                    Ok(font_family) => {
-                        let mut doc = genpdf::Document::new(font_family);
-                        let mut decorator = genpdf::SimplePageDecorator::new();
-                        decorator.set_margins(10);
-                        doc.set_page_decorator(decorator);
-                        doc.set_title(pdf_fields.title.clone());
-                        doc.push(Paragraph::new(format!("Operator: {}", pdf_fields.operator)));
-                        doc.push(Paragraph::new(format!("Part: {}", pdf_fields.part)));
-                        doc.push(Paragraph::new(format!("Revision: {}", pdf_fields.revision)));
-                        doc.push(Paragraph::new(format!("Machine: {}", machine.name)));
-                        // Render the document and write it to a file
-                        doc.render_to_file("output.pdf")
-                            .expect("Failed to write PDF file");
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to load font family: {:?}", e);
-                    }
-                }
+                // match genpdf::fonts::from_files("./fonts", "PTSans", None) {
+                //     Ok(font_family) => {
+                //         let mut doc = genpdf::Document::new(font_family);
+                //         let mut decorator = genpdf::SimplePageDecorator::new();
+                //         decorator.set_margins(10);
+                //         doc.set_page_decorator(decorator);
+                //         doc.set_title(pdf_fields.title.clone());
+                //         doc.push(Paragraph::new(format!("Operator: {}", pdf_fields.operator)));
+                //         doc.push(Paragraph::new(format!("Part: {}", pdf_fields.part)));
+                //         doc.push(Paragraph::new(format!("Revision: {}", pdf_fields.revision)));
+                //         doc.push(Paragraph::new(format!("Machine: {}", machine.name)));
+                //         // Render the document and write it to a file
+                //         doc.render_to_file("output.pdf")
+                //             .expect("Failed to write PDF file");
+                //     }
+                //     Err(e) => {
+                //         eprintln!("Failed to load font family: {:?}", e);
+                //     }
+                // }
             }
 
             if ui.button("Cancel").clicked() {

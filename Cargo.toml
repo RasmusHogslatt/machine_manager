@@ -1,9 +1,9 @@
 [package]
-name = "eframe_template"
+name = "machine_manager"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+authors = ["Rasmus Hogslätt <r.hogslatt@gmail.com>"]
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.71"
 
 
 [dependencies]
@@ -15,7 +15,6 @@ eframe = { version = "0.23.0", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4"
-genpdf = "0.2.0"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
