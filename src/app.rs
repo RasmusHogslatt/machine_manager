@@ -1,3 +1,5 @@
+use crate::js_sys::Array;
+use crate::wasm_bindgen::JsValue;
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -31,6 +33,10 @@ use crate::{
     trigon_insert::TrigonInsert,
     IsPlaceholder,
 };
+use js_sys::Uint8Array;
+use pdf_writer::{Pdf, Rect, Ref};
+use web_sys::wasm_bindgen::JsCast;
+use web_sys::*;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -305,18 +311,6 @@ impl eframe::App for ManagingApp {
             pdf_fields,
             pdf_settings,
         } = self;
-
-        // #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
-        // egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-        //     // The top panel is often a good place for a menu bar:
-        //     egui::menu::bar(ui, |ui| {
-        //         ui.menu_button("File", |ui| {
-        //             if ui.button("Quit").clicked() {
-        //                 _frame.close();
-        //             }
-        //         });
-        //     });
-        // });
 
         match popup_state {
             PopupState::AddMachine => add_machine(gui_resource, machines, popup_state, ctx),
@@ -1063,25 +1057,45 @@ pub fn generate_pdf(
                 ui.text_edit_singleline(&mut pdf_fields.revision);
             });
             if ui.button("Generate").clicked() {
-                // match genpdf::fonts::from_files("./fonts", "PTSans", None) {
-                //     Ok(font_family) => {
-                //         let mut doc = genpdf::Document::new(font_family);
-                //         let mut decorator = genpdf::SimplePageDecorator::new();
-                //         decorator.set_margins(10);
-                //         doc.set_page_decorator(decorator);
-                //         doc.set_title(pdf_fields.title.clone());
-                //         doc.push(Paragraph::new(format!("Operator: {}", pdf_fields.operator)));
-                //         doc.push(Paragraph::new(format!("Part: {}", pdf_fields.part)));
-                //         doc.push(Paragraph::new(format!("Revision: {}", pdf_fields.revision)));
-                //         doc.push(Paragraph::new(format!("Machine: {}", machine.name)));
-                //         // Render the document and write it to a file
-                //         doc.render_to_file("output.pdf")
-                //             .expect("Failed to write PDF file");
-                //     }
-                //     Err(e) => {
-                //         eprintln!("Failed to load font family: {:?}", e);
-                //     }
-                // }
+                // Define some indirect reference ids we'll use.
+                let catalog_id = Ref::new(1);
+                let page_tree_id = Ref::new(2);
+                let page_id = Ref::new(3);
+
+                // Write a document catalog and a page tree with one A4 page that uses no resources.
+                let mut pdf = Pdf::new();
+                pdf.catalog(catalog_id).pages(page_tree_id);
+                pdf.pages(page_tree_id).kids([page_id]).count(1);
+                pdf.page(page_id)
+                    .parent(page_tree_id)
+                    .media_box(Rect::new(0.0, 0.0, 595.0, 842.0))
+                    .resources();
+
+                // Finish with cross-reference table and trailer.
+                let pdf_bytes = pdf.finish(); // Assuming this returns Vec<u8>
+                                              // #[cfg(target_arch = "wasm32")]
+                                              // // Use save_as function to save the PDF in the browser
+                                              // if let Err(e) = save_as(&pdf_bytes, "empty.pdf") {
+                                              //     // Handle error (e.g., log to console)
+                                              //     log::error!("Error saving PDF: {:?}", e);
+                                              // }
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    // Code that should only compile for native targets
+                    println!("From native");
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    // Code that should only compile for WebAssembly targets
+                    println!("From wasm");
+                    if let Err(e) = save_as(&pdf_bytes, "empty.pdf") {
+                        // Handle error (e.g., log to console)
+                        log::error!("Error saving PDF: {:?}", e);
+                    }
+                }
+
+                *popup_state = PopupState::None;
             }
 
             if ui.button("Cancel").clicked() {
@@ -1089,4 +1103,33 @@ pub fn generate_pdf(
             }
         });
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn save_as(data: &[u8], filename: &str) -> Result<(), JsValue> {
+    // Create Uint8Array from the Rust data slice
+    let data_js_inner = Uint8Array::new_with_length(data.len() as u32);
+    data_js_inner.copy_from(data);
+
+    // Create a Blob from the Uint8Array
+    let data_js = Array::new();
+    data_js.push(&data_js_inner.buffer());
+    let data_blob = Blob::new_with_blob_sequence(&data_js)?;
+
+    // Get the document
+    let document = window().unwrap().document().unwrap();
+
+    // Create an HTML anchor element
+    let temp = document
+        .create_element("a")?
+        .unchecked_into::<HtmlAnchorElement>();
+    temp.set_href(&web_sys::Url::create_object_url_with_blob(&data_blob)?);
+    temp.set_download(filename);
+
+    // Append the element to the document, click it, and then remove it
+    document.body().unwrap().append_child(&temp)?;
+    temp.click();
+    temp.remove();
+
+    Ok(())
 }
