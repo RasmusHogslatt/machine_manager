@@ -1,3 +1,5 @@
+use std::io::BufWriter;
+
 use crate::js_sys::Array;
 use crate::wasm_bindgen::JsValue;
 use crate::{
@@ -34,7 +36,11 @@ use crate::{
     IsPlaceholder,
 };
 use js_sys::Uint8Array;
-use pdf_writer::{Pdf, Rect, Ref};
+use std::fs::File;
+//use pdf_writer::*;
+use printpdf::{Mm, PdfDocument};
+use std::io::prelude::*;
+use std::io::Cursor;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::*;
 
@@ -1058,38 +1064,44 @@ pub fn generate_pdf(
             });
             if ui.button("Generate").clicked() {
                 // Define some indirect reference ids we'll use.
-                let catalog_id = Ref::new(1);
-                let page_tree_id = Ref::new(2);
-                let page_id = Ref::new(3);
+                // let catalog_id = Ref::new(1);
+                // let page_tree_id = Ref::new(2);
+                // let page_id = Ref::new(3);
 
-                // Write a document catalog and a page tree with one A4 page that uses no resources.
-                let mut pdf = Pdf::new();
-                pdf.catalog(catalog_id).pages(page_tree_id);
-                pdf.pages(page_tree_id).kids([page_id]).count(1);
-                pdf.page(page_id)
-                    .parent(page_tree_id)
-                    .media_box(Rect::new(0.0, 0.0, 595.0, 842.0))
-                    .resources();
+                // // Write a document catalog and a page tree with one A4 page that uses no resources.
+                // let mut pdf = Pdf::new();
+                // pdf.catalog(catalog_id).pages(page_tree_id);
+                // pdf.pages(page_tree_id).kids([page_id]).count(1);
+                // pdf.page(page_id)
+                //     .parent(page_tree_id)
+                //     .media_box(Rect::new(0.0, 0.0, 595.0, 842.0))
+                //     .resources();
 
-                // Finish with cross-reference table and trailer.
-                let pdf_bytes = pdf.finish(); // Assuming this returns Vec<u8>
-                                              // #[cfg(target_arch = "wasm32")]
-                                              // // Use save_as function to save the PDF in the browser
-                                              // if let Err(e) = save_as(&pdf_bytes, "empty.pdf") {
-                                              //     // Handle error (e.g., log to console)
-                                              //     log::error!("Error saving PDF: {:?}", e);
-                                              // }
+                // // Finish with cross-reference table and trailer.
+                // let pdf_bytes = pdf.finish();
+                let (doc, page1, layer1) =
+                    PdfDocument::new("PDF_Document_title", Mm(247.0), Mm(210.0), "Layer 1");
+                let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
+
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     // Code that should only compile for native targets
                     println!("From native");
+                    doc.save(&mut BufWriter::new(File::create("test.pdf").unwrap()))
+                        .unwrap();
                 }
 
                 #[cfg(target_arch = "wasm32")]
                 {
                     // Code that should only compile for WebAssembly targets
                     println!("From wasm");
-                    if let Err(e) = save_as(&pdf_bytes, "empty.pdf") {
+                    println!("From wasm");
+                    let mut buffer = Vec::new();
+                    {
+                        let mut buf_writer = std::io::BufWriter::new(&mut buffer);
+                        doc.save(&mut buf_writer).unwrap();
+                    } // buf_writer goes out of scope and flushes its buffer into `buffer`
+                    if let Err(e) = save_as(&buffer, "empty.pdf") {
                         // Handle error (e.g., log to console)
                         log::error!("Error saving PDF: {:?}", e);
                     }
