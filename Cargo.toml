@@ -1,9 +1,9 @@
 [package]
-name = "eframe_template"
+name = "machine_manager"
 version = "0.1.0"
-authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
+authors = ["Rasmus Hogslätt <r.hogslatt@gmail.com>"]
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.71"
 
 
 [dependencies]
@@ -15,12 +15,21 @@ eframe = { version = "0.23.0", default-features = false, features = [
     "persistence",   # Enable restoring app state when restarting the app.
 ] }
 log = "0.4"
-genpdf = "0.2.0"
 
 # You only need serde if you want app persistence:
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.105"
-uuid = {version = "1.4.1", features = ["serde", "v4"]}
+uuid = { version = "1.4.1", features = ["serde", "v4"] }
+printpdf = "0.6.0"
+tempdir = "0.3.7"
+webbrowser = "0.8.12"
+web-sys = { version = "0.3.65", features = [
+    "Url",
+    "Document",
+    "Blob",
+    "HtmlAnchorElement",
+    "Window",
+] }
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -49,4 +58,3 @@ opt-level = 2
 # If you fork https://github.com/emilk/egui you can test with:
 # egui = { path = "../egui/crates/egui" }
 # eframe = { path = "../egui/crates/eframe" }
- 
