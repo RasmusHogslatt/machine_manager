@@ -67,4 +67,9 @@ impl Drawable for CircularInsert {
             }
         });
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        let n_lines = 2;
+        let string = format!("Name: {}\nDegree: {}", self.name, self.degree);
+        (string, n_lines)
+    }
 }

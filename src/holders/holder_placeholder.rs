@@ -39,6 +39,9 @@ impl Drawable for HolderPlaceHolder {
         _ui: &mut egui::Ui,
     ) {
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        ("EMPTY".to_string(), 1)
+    }
 }
 
 impl IsPlaceholder for HolderPlaceHolder {

@@ -63,4 +63,9 @@ impl Drawable for Hydraulic {
             }
         });
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        let n_lines = 1;
+        let string = format!("Name: {}:", self.name);
+        (string, n_lines)
+    }
 }

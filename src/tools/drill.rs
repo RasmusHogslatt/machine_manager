@@ -67,4 +67,10 @@ impl Drawable for Drill {
             }
         });
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        let n_lines = 2;
+        let n_lines = 2;
+        let string = format!("Name: {}\nDiameter: {}", self.name, self.diameter);
+        (string, n_lines)
+    }
 }

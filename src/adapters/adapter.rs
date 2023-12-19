@@ -84,6 +84,14 @@ impl Drawable for Adapter {
             }
         }
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        match self {
+            Adapter::ShrinkFit(adapter) => adapter.get_pdf_string(),
+            Adapter::SideLock(adapter) => adapter.get_pdf_string(),
+            Adapter::Hydraulic(adapter) => adapter.get_pdf_string(),
+            Adapter::AdapterPlaceHolder(adapter) => adapter.get_pdf_string(),
+        }
+    }
 }
 
 impl IsPlaceholder for Adapter {

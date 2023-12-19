@@ -2,6 +2,7 @@ use std::io::BufWriter;
 
 use crate::js_sys::Array;
 use crate::wasm_bindgen::JsValue;
+use crate::Identifiable;
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -38,7 +39,7 @@ use crate::{
 use js_sys::Uint8Array;
 use std::fs::File;
 //use pdf_writer::*;
-use printpdf::{Mm, PdfDocument};
+use printpdf::*;
 use std::io::prelude::*;
 use std::io::Cursor;
 use web_sys::wasm_bindgen::JsCast;
@@ -1063,30 +1064,50 @@ pub fn generate_pdf(
                 ui.text_edit_singleline(&mut pdf_fields.revision);
             });
             if ui.button("Generate").clicked() {
-                // Define some indirect reference ids we'll use.
-                // let catalog_id = Ref::new(1);
-                // let page_tree_id = Ref::new(2);
-                // let page_id = Ref::new(3);
-
-                // // Write a document catalog and a page tree with one A4 page that uses no resources.
-                // let mut pdf = Pdf::new();
-                // pdf.catalog(catalog_id).pages(page_tree_id);
-                // pdf.pages(page_tree_id).kids([page_id]).count(1);
-                // pdf.page(page_id)
-                //     .parent(page_tree_id)
-                //     .media_box(Rect::new(0.0, 0.0, 595.0, 842.0))
-                //     .resources();
-
-                // // Finish with cross-reference table and trailer.
-                // let pdf_bytes = pdf.finish();
                 let (doc, page1, layer1) =
-                    PdfDocument::new("PDF_Document_title", Mm(247.0), Mm(210.0), "Layer 1");
+                    PdfDocument::new("PDF_Document_title", Mm(210.0), Mm(297.0), "Layer 1");
                 let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
 
+                // Load font
+                let font_data = {
+                    let mut font_file = File::open("./fonts/PTSans-Regular.ttf").unwrap();
+                    let mut font_data =
+                        Vec::with_capacity(font_file.metadata().unwrap().len() as usize);
+                    font_file.read_to_end(&mut font_data).unwrap();
+                    font_data
+                };
+                let font = doc.add_external_font(font_data.as_slice()).unwrap();
+
+                // Write to layer 1 on page 1
+                let current_layer = doc.get_page(page1).get_layer(layer1);
+                write_to_layer(&current_layer, &pdf_fields.title, &font, 24.0, 80.0, 280.0);
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.operator,
+                    &font,
+                    12.0,
+                    22.0,
+                    20.0,
+                );
+                write_to_layer(&current_layer, &pdf_fields.part, &font, 12.0, 10.0, 20.0);
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.revision,
+                    &font,
+                    12.0,
+                    18.0,
+                    20.0,
+                );
+                // loop over magazines
+                for (magazine_index, magazine) in machine.magazines.iter().enumerate() {
+                    // loop over magazine contents
+
+                    // write tool info to layer
+                    write_magazine_to_layer(&current_layer, &magazine, &font, 10.0, 250.0, 15.0);
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     // Code that should only compile for native targets
-                    println!("From native");
                     doc.save(&mut BufWriter::new(File::create("test.pdf").unwrap()))
                         .unwrap();
                 }
@@ -1094,8 +1115,6 @@ pub fn generate_pdf(
                 #[cfg(target_arch = "wasm32")]
                 {
                     // Code that should only compile for WebAssembly targets
-                    println!("From wasm");
-                    println!("From wasm");
                     let mut buffer = Vec::new();
                     {
                         let mut buf_writer = std::io::BufWriter::new(&mut buffer);
@@ -1144,4 +1163,38 @@ pub fn save_as(data: &[u8], filename: &str) -> Result<(), JsValue> {
     temp.remove();
 
     Ok(())
+}
+
+// function to write content to a pdf layer from a string
+pub fn write_to_layer(
+    layer: &PdfLayerReference,
+    content: &str,
+    font: &IndirectFontRef,
+    size: f32,
+    x: f32,
+    y: f32,
+) {
+    layer.use_text(content, size, Mm(x), Mm(y), &font);
+}
+
+pub fn write_magazine_to_layer(
+    layer: &PdfLayerReference,
+    magazine: &Magazine,
+    font: &IndirectFontRef,
+    start_x: f32,
+    start_y: f32,
+    line_height: f32,
+) {
+    let mut y_offset = start_y;
+    for (tool, holder, adapter) in magazine.contents.iter() {
+        let (tool_info, tool_lines) = tool.get_pdf_string();
+        let (holder_info, holder_lines) = holder.get_pdf_string();
+        let (adapter_info, adapter_lines) = adapter.get_pdf_string();
+        let max_lines = tool_lines.max(holder_lines).max(adapter_lines);
+
+        write_to_layer(layer, &tool_info, font, 12.0, start_x, y_offset);
+        write_to_layer(layer, &holder_info, font, 12.0, start_x + 50.0, y_offset);
+        write_to_layer(layer, &adapter_info, font, 12.0, start_x + 100.0, y_offset);
+        y_offset -= line_height; // Move down for the next line
+    }
 }

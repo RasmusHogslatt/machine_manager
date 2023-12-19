@@ -9,4 +9,5 @@ pub trait Drawable {
         popup_state: &mut PopupState,
         ui: &mut egui::Ui,
     );
+    fn get_pdf_string(&self) -> (String, usize);
 }

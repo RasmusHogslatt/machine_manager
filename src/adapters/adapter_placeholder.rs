@@ -58,6 +58,9 @@ impl Drawable for AdapterPlaceHolder {
             }
         });
     }
+    fn get_pdf_string(&self) -> (String, usize) {
+        ("EMPTY".to_string(), 1)
+    }
 }
 
 impl IsPlaceholder for AdapterPlaceHolder {
