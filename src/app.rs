@@ -36,8 +36,10 @@ use crate::{
     trigon_insert::TrigonInsert,
     IsPlaceholder,
 };
+use egui::Vec2;
 use js_sys::Uint8Array;
 use std::fs::File;
+
 //use pdf_writer::*;
 use printpdf::*;
 use std::io::prelude::*;
@@ -1066,7 +1068,7 @@ pub fn generate_pdf(
             if ui.button("Generate").clicked() {
                 let (doc, page1, layer1) =
                     PdfDocument::new("PDF_Document_title", Mm(210.0), Mm(297.0), "Layer 1");
-                let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
+                //let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
 
                 // Load font
                 let font_data = {
@@ -1079,31 +1081,88 @@ pub fn generate_pdf(
                 let font = doc.add_external_font(font_data.as_slice()).unwrap();
 
                 // Write to layer 1 on page 1
-                let current_layer = doc.get_page(page1).get_layer(layer1);
-                write_to_layer(&current_layer, &pdf_fields.title, &font, 24.0, 80.0, 280.0);
+                let mut current_layer = doc.get_page(page1).get_layer(layer1);
+                let info_pos = Vec2::new(10.0, 280.0);
+                let offset = Vec2::new(30.0, 5.0);
+
+                // Title
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.title,
+                    &font,
+                    24.0,
+                    info_pos.x,
+                    info_pos.y,
+                );
+
+                // Operator
+                write_to_layer(
+                    &current_layer,
+                    "Operator:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - offset.y,
+                );
                 write_to_layer(
                     &current_layer,
                     &pdf_fields.operator,
                     &font,
                     12.0,
-                    22.0,
-                    20.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - offset.y,
                 );
-                write_to_layer(&current_layer, &pdf_fields.part, &font, 12.0, 10.0, 20.0);
+
+                // Part
+                write_to_layer(
+                    &current_layer,
+                    "Part:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - 2.0 * offset.y,
+                );
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.part,
+                    &font,
+                    12.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - 2.0 * offset.y,
+                );
+
+                // Revision
+                write_to_layer(
+                    &current_layer,
+                    "Revision:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - 3.0 * offset.y,
+                );
                 write_to_layer(
                     &current_layer,
                     &pdf_fields.revision,
                     &font,
                     12.0,
-                    18.0,
-                    20.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - 3.0 * offset.y,
                 );
+
                 // loop over magazines
                 for (magazine_index, magazine) in machine.magazines.iter().enumerate() {
                     // loop over magazine contents
 
                     // write tool info to layer
-                    write_magazine_to_layer(&current_layer, &magazine, &font, 10.0, 250.0, 15.0);
+                    current_layer = write_magazine_to_layer(
+                        &doc,
+                        &current_layer,
+                        &magazine,
+                        &font,
+                        info_pos.x,
+                        info_pos.y - 5.0 * offset.y,
+                        15.0,
+                    );
                 }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
@@ -1178,23 +1237,38 @@ pub fn write_to_layer(
 }
 
 pub fn write_magazine_to_layer(
-    layer: &PdfLayerReference,
+    mut doc: &PdfDocumentReference,
+    mut layer: &PdfLayerReference,
     magazine: &Magazine,
     font: &IndirectFontRef,
     start_x: f32,
     start_y: f32,
     line_height: f32,
-) {
+) -> PdfLayerReference {
     let mut y_offset = start_y;
+    let size = 10.0;
+
     for (tool, holder, adapter) in magazine.contents.iter() {
         let (tool_info, tool_lines) = tool.get_pdf_string();
         let (holder_info, holder_lines) = holder.get_pdf_string();
         let (adapter_info, adapter_lines) = adapter.get_pdf_string();
         let max_lines = tool_lines.max(holder_lines).max(adapter_lines);
 
-        write_to_layer(layer, &tool_info, font, 12.0, start_x, y_offset);
-        write_to_layer(layer, &holder_info, font, 12.0, start_x + 50.0, y_offset);
-        write_to_layer(layer, &adapter_info, font, 12.0, start_x + 100.0, y_offset);
+        write_to_layer(layer, &tool_info, font, size, start_x, y_offset);
+        write_to_layer(layer, &holder_info, font, size, start_x + 50.0, y_offset);
+        write_to_layer(layer, &adapter_info, font, size, start_x + 100.0, y_offset);
         y_offset -= line_height; // Move down for the next line
+                                 // if there are more lines to write, but y_offset is below the page, add a new page
+        if y_offset < 15.0 {
+            y_offset = start_y;
+            let (page2, layer1) = doc.add_page(Mm(210.0), Mm(297.0), "Page 2, Layer 1");
+            let new_layer = doc.get_page(page2).get_layer(layer1);
+            let layer = new_layer;
+            write_to_layer(&layer, &tool_info, font, size, start_x, y_offset);
+            write_to_layer(&layer, &holder_info, font, size, start_x + 50.0, y_offset);
+            write_to_layer(&layer, &adapter_info, font, size, start_x + 100.0, y_offset);
+            y_offset -= line_height;
+        }
     }
+    layer.clone()
 }
