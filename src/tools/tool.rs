@@ -125,6 +125,19 @@ impl Drawable for Tool {
             }
         }
     }
+
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        match self {
+            Tool::Drill(drill) => drill.get_pdf_string(),
+            Tool::Mill(mill) => mill.get_pdf_string(),
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.get_pdf_string(),
+            Tool::TriangleInsert(triangle_insert) => triangle_insert.get_pdf_string(),
+            Tool::CircularInsert(circular_insert) => circular_insert.get_pdf_string(),
+            Tool::SquareInsert(square_insert) => square_insert.get_pdf_string(),
+            Tool::TrigonInsert(trigon_insert) => trigon_insert.get_pdf_string(),
+            Tool::DiamondInsert(diamond_insert) => diamond_insert.get_pdf_string(),
+        }
+    }
 }
 
 impl IsPlaceholder for Tool {

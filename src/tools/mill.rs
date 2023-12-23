@@ -66,4 +66,10 @@ impl Drawable for Mill {
             }
         });
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        let mut fields: Vec<(String, String)> = Vec::new();
+        fields.push(("Name: ".to_string(), self.name.clone()));
+        fields.push(("Diameter: ".to_string(), self.diameter.to_string()));
+        fields
+    }
 }

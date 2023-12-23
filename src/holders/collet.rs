@@ -63,4 +63,9 @@ impl Drawable for Collet {
             }
         });
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        let mut fields: Vec<(String, String)> = Vec::new();
+        fields.push(("Name: ".to_string(), self.name.clone()));
+        fields
+    }
 }

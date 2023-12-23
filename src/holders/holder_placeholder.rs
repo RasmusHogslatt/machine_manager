@@ -39,6 +39,10 @@ impl Drawable for HolderPlaceHolder {
         _ui: &mut egui::Ui,
     ) {
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        let mut fields: Vec<(String, String)> = Vec::new();
+        fields
+    }
 }
 
 impl IsPlaceholder for HolderPlaceHolder {

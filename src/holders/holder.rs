@@ -148,6 +148,25 @@ impl Drawable for Holder {
             }
         }
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        match self {
+            Holder::Collet(collet_holder) => collet_holder.get_pdf_string(),
+            Holder::EndMill(end_mill_holder) => end_mill_holder.get_pdf_string(),
+            Holder::DrillChuck(drill_chuck_holder) => drill_chuck_holder.get_pdf_string(),
+            Holder::ExternalTurning(external_turning_holder) => {
+                external_turning_holder.get_pdf_string()
+            }
+            Holder::InternalTurning(internal_turning_holder) => {
+                internal_turning_holder.get_pdf_string()
+            }
+            Holder::GroovingParting(grooving_parting_holder) => {
+                grooving_parting_holder.get_pdf_string()
+            }
+            Holder::Threading(threading_holder) => threading_holder.get_pdf_string(),
+            Holder::Tapping(tapping_holder) => tapping_holder.get_pdf_string(),
+            Holder::HolderPlaceHolder(place_holder_holder) => place_holder_holder.get_pdf_string(),
+        }
+    }
 }
 
 impl IsPlaceholder for Holder {

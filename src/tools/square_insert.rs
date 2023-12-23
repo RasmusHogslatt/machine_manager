@@ -67,4 +67,10 @@ impl Drawable for SquareInsert {
             }
         });
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        let mut fields: Vec<(String, String)> = Vec::new();
+        fields.push(("Name: ".to_string(), self.name.clone()));
+        fields.push(("Degree: ".to_string(), self.degree.to_string()));
+        fields
+    }
 }

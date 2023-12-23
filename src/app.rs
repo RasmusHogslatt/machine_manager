@@ -2,6 +2,7 @@ use std::io::BufWriter;
 
 use crate::js_sys::Array;
 use crate::wasm_bindgen::JsValue;
+use crate::Identifiable;
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -35,10 +36,12 @@ use crate::{
     trigon_insert::TrigonInsert,
     IsPlaceholder,
 };
+use egui::Vec2;
 use js_sys::Uint8Array;
 use std::fs::File;
+
 //use pdf_writer::*;
-use printpdf::{Mm, PdfDocument};
+use printpdf::*;
 use std::io::prelude::*;
 use std::io::Cursor;
 use web_sys::wasm_bindgen::JsCast;
@@ -1063,30 +1066,105 @@ pub fn generate_pdf(
                 ui.text_edit_singleline(&mut pdf_fields.revision);
             });
             if ui.button("Generate").clicked() {
-                // Define some indirect reference ids we'll use.
-                // let catalog_id = Ref::new(1);
-                // let page_tree_id = Ref::new(2);
-                // let page_id = Ref::new(3);
-
-                // // Write a document catalog and a page tree with one A4 page that uses no resources.
-                // let mut pdf = Pdf::new();
-                // pdf.catalog(catalog_id).pages(page_tree_id);
-                // pdf.pages(page_tree_id).kids([page_id]).count(1);
-                // pdf.page(page_id)
-                //     .parent(page_tree_id)
-                //     .media_box(Rect::new(0.0, 0.0, 595.0, 842.0))
-                //     .resources();
-
-                // // Finish with cross-reference table and trailer.
-                // let pdf_bytes = pdf.finish();
                 let (doc, page1, layer1) =
-                    PdfDocument::new("PDF_Document_title", Mm(247.0), Mm(210.0), "Layer 1");
-                let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
+                    PdfDocument::new("PDF_Document_title", Mm(210.0), Mm(297.0), "Layer 1");
+                //let (page2, layer1) = doc.add_page(Mm(10.0), Mm(250.0), "Page 2, Layer 1");
 
+                // Load font
+                let font_data = {
+                    let mut font_file = File::open("./fonts/PTSans-Regular.ttf").unwrap();
+                    let mut font_data =
+                        Vec::with_capacity(font_file.metadata().unwrap().len() as usize);
+                    font_file.read_to_end(&mut font_data).unwrap();
+                    font_data
+                };
+                let font = doc.add_external_font(font_data.as_slice()).unwrap();
+
+                // Write to layer 1 on page 1
+                let mut current_layer = doc.get_page(page1).get_layer(layer1);
+                let info_pos = Vec2::new(10.0, 280.0);
+                let offset = Vec2::new(30.0, 5.0);
+
+                // Title
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.title,
+                    &font,
+                    24.0,
+                    info_pos.x,
+                    info_pos.y,
+                );
+
+                // Operator
+                write_to_layer(
+                    &current_layer,
+                    "Operator:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - offset.y,
+                );
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.operator,
+                    &font,
+                    12.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - offset.y,
+                );
+
+                // Part
+                write_to_layer(
+                    &current_layer,
+                    "Part:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - 2.0 * offset.y,
+                );
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.part,
+                    &font,
+                    12.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - 2.0 * offset.y,
+                );
+
+                // Revision
+                write_to_layer(
+                    &current_layer,
+                    "Revision:",
+                    &font,
+                    12.0,
+                    info_pos.x,
+                    info_pos.y - 3.0 * offset.y,
+                );
+                write_to_layer(
+                    &current_layer,
+                    &pdf_fields.revision,
+                    &font,
+                    12.0,
+                    info_pos.x + offset.x,
+                    info_pos.y - 3.0 * offset.y,
+                );
+
+                // loop over magazines
+                for (magazine_index, magazine) in machine.magazines.iter().enumerate() {
+                    // write tool info to layer
+                    current_layer = write_magazine_to_layer(
+                        &doc,
+                        &current_layer,
+                        &magazine,
+                        &font,
+                        info_pos.x,
+                        info_pos.y - 5.0 * offset.y,
+                        10.0,
+                    );
+                }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
                     // Code that should only compile for native targets
-                    println!("From native");
                     doc.save(&mut BufWriter::new(File::create("test.pdf").unwrap()))
                         .unwrap();
                 }
@@ -1094,8 +1172,6 @@ pub fn generate_pdf(
                 #[cfg(target_arch = "wasm32")]
                 {
                     // Code that should only compile for WebAssembly targets
-                    println!("From wasm");
-                    println!("From wasm");
                     let mut buffer = Vec::new();
                     {
                         let mut buf_writer = std::io::BufWriter::new(&mut buffer);
@@ -1145,3 +1221,137 @@ pub fn save_as(data: &[u8], filename: &str) -> Result<(), JsValue> {
 
     Ok(())
 }
+
+// function to write content to a pdf layer from a string
+pub fn write_to_layer(
+    layer: &PdfLayerReference,
+    content: &str,
+    font: &IndirectFontRef,
+    size: f32,
+    x: f32,
+    y: f32,
+) {
+    layer.use_text(content, size, Mm(x), Mm(y), &font);
+}
+
+pub fn write_magazine_to_layer(
+    mut doc: &PdfDocumentReference,
+    mut layer: &PdfLayerReference,
+    magazine: &Magazine,
+    font: &IndirectFontRef,
+    start_x: f32,
+    start_y: f32,
+    line_height: f32,
+) -> PdfLayerReference {
+    let mut y_offset = start_y;
+    let size = 10.0;
+
+    for (tool, holder, adapter) in magazine.contents.iter() {
+        let tool_info = tool.get_pdf_string();
+        let holder_info = holder.get_pdf_string();
+        let adapter_info = adapter.get_pdf_string();
+
+        let mut highest_idx = 1;
+
+        for (idx, (field, value)) in tool_info.iter().enumerate() {
+            if tool_info.is_empty() {
+                break;
+            } else if idx == 0 {
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size,
+                    start_x,
+                    y_offset,
+                );
+            } else {
+                highest_idx = idx;
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size * 0.5,
+                    start_x,
+                    y_offset - highest_idx as f32 * 10.0 * 0.5,
+                );
+            }
+        }
+        for (idx, (field, value)) in holder_info.iter().enumerate() {
+            if holder_info.is_empty() {
+                break;
+            } else if idx == 0 {
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size,
+                    start_x + 50.0,
+                    y_offset,
+                );
+            } else {
+                if idx > highest_idx {
+                    highest_idx = idx;
+                }
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size * 0.5,
+                    start_x + 50.0,
+                    y_offset - idx as f32 * 10.0 * 0.5,
+                );
+            }
+        }
+        for (idx, (field, value)) in adapter_info.iter().enumerate() {
+            if adapter_info.is_empty() {
+                break;
+            } else if idx == 0 {
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size,
+                    start_x + 100.0,
+                    y_offset,
+                );
+            } else {
+                if idx > highest_idx {
+                    highest_idx = idx;
+                }
+                write_to_layer(
+                    layer,
+                    &format!("{}{}", field, value),
+                    font,
+                    size * 0.5,
+                    start_x + 100.0,
+                    y_offset - idx as f32 * 10.0 * 0.5,
+                );
+            }
+        }
+
+        y_offset -= line_height * highest_idx as f32; // Move down for the next line
+                                                      // if there are more lines to write, but y_offset is below the page, add a new page
+        if y_offset < 15.0 {
+            y_offset = start_y;
+            let (page2, layer1) = doc.add_page(Mm(210.0), Mm(297.0), "Page 2, Layer 1");
+            let new_layer = doc.get_page(page2).get_layer(layer1);
+            let layer = new_layer;
+            // write_to_layer(&layer, &tool_info, font, size, start_x, y_offset);
+            // write_to_layer(&layer, &holder_info, font, size, start_x + 50.0, y_offset);
+            // write_to_layer(&layer, &adapter_info, font, size, start_x + 100.0, y_offset);
+            y_offset -= line_height;
+        }
+    }
+    layer.clone()
+}
+
+// TODO
+// Filter rotating and insert in magazine
+// Print multiple magazines to pdf
+// Column with comments in magazine (total 4 columns)
+// Move tool from magazine to library
+// Remove "Name: " to save place
+// Improve printing layout
+// Add scrolling to magazine
+// Sort by diameter, degree etc. Implement some sortable type

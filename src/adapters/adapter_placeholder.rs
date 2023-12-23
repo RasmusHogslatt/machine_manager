@@ -58,6 +58,10 @@ impl Drawable for AdapterPlaceHolder {
             }
         });
     }
+    fn get_pdf_string(&self) -> Vec<(String, String)> {
+        let mut fields: Vec<(String, String)> = Vec::new();
+        fields
+    }
 }
 
 impl IsPlaceholder for AdapterPlaceHolder {
