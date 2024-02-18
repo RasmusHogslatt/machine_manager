@@ -2,7 +2,6 @@ use std::io::BufWriter;
 
 use crate::js_sys::Array;
 use crate::wasm_bindgen::JsValue;
-use crate::Identifiable;
 use crate::{
     adapter::*,
     adapter_placeholder::AdapterPlaceHolder,
@@ -36,6 +35,8 @@ use crate::{
     trigon_insert::TrigonInsert,
     IsPlaceholder,
 };
+use crate::{tool, Identifiable};
+use egui::containers::ScrollArea;
 use egui::Vec2;
 use js_sys::Uint8Array;
 use std::fs::File;
@@ -263,6 +264,8 @@ impl Default for ManagingApp {
                     magazines: Vec::new(),
                     selected_magazine: None,
                 },
+                tool_filter: ToolCategory::Empty,
+                tool_sorting: ToolSorting::Slot,
             },
             library: Library::default(),
             machines: Vec::new(),
@@ -343,6 +346,9 @@ impl eframe::App for ManagingApp {
                 pdf_fields,
                 pdf_settings,
             ),
+            PopupState::RemoveFromMagazine => {
+                remove_from_magazine(machines, selections, ctx, library, popup_state)
+            }
         }
         let mut new_popup_state = None;
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
@@ -372,7 +378,7 @@ impl eframe::App for ManagingApp {
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            display_magazine(machines, selections, ui, popup_state);
+            display_magazine(machines, selections, ui, popup_state, library, gui_resource);
         });
         if let Some(state) = new_popup_state {
             self.popup_state = state;
@@ -442,6 +448,8 @@ pub fn display_magazine(
     selections: &mut Selections,
     ui: &mut egui::Ui,
     popup_state: &mut PopupState,
+    library: &mut Library,
+    gui_resource: &mut GuiResource,
 ) {
     // get machine index, return if none
     if let Some(machine_index) = selections.selected_machine {
@@ -454,40 +462,160 @@ pub fn display_magazine(
                 ui.separator();
                 ui.heading(format!("Capacity: {}", magazine.capacity));
             });
-            ui.separator();
+
+            egui::ComboBox::from_label("Filter by")
+                .selected_text(gui_resource.tool_filter.to_string())
+                .show_ui(ui, |ui| {
+                    if ui
+                        .selectable_label(gui_resource.tool_filter == ToolCategory::All, "All")
+                        .clicked()
+                    {
+                        gui_resource.tool_filter = ToolCategory::All;
+                    }
+                    if ui
+                        .selectable_label(
+                            gui_resource.tool_filter == ToolCategory::Empty,
+                            "Empty slots",
+                        )
+                        .clicked()
+                    {
+                        gui_resource.tool_filter = ToolCategory::Empty;
+                    }
+                    if ui
+                        .selectable_label(
+                            gui_resource.tool_filter == ToolCategory::Rotating,
+                            "Rotating",
+                        )
+                        .clicked()
+                    {
+                        gui_resource.tool_filter = ToolCategory::Rotating;
+                    }
+                    if ui
+                        .selectable_label(
+                            gui_resource.tool_filter == ToolCategory::LatheInsert,
+                            "Lathe Insert",
+                        )
+                        .clicked()
+                    {
+                        gui_resource.tool_filter = ToolCategory::LatheInsert;
+                    }
+                });
+
+            egui::ComboBox::from_label("Sort by")
+                .selected_text(gui_resource.tool_sorting.to_string())
+                .show_ui(ui, |ui| {
+                    if ui
+                        .selectable_label(gui_resource.tool_sorting == ToolSorting::Slot, "Slot")
+                        .clicked()
+                    {
+                        gui_resource.tool_sorting = ToolSorting::Slot;
+                    }
+                    if ui
+                        .selectable_label(gui_resource.tool_sorting == ToolSorting::Value, "Value")
+                        .clicked()
+                    {
+                        gui_resource.tool_sorting = ToolSorting::Value;
+                    }
+                });
+
+            sort_magazine(magazine, gui_resource);
             ui.columns(4, |ui| {
                 ui[0].heading("Slot");
                 ui[1].heading("Tool");
                 ui[2].heading("Holder");
                 ui[3].heading("Adapter");
                 for (i, (tool, holder, adapter)) in magazine.contents.iter_mut().enumerate() {
-                    ui[0].label(format!("{}", i));
-                    ui[1].horizontal(|ui| {
-                        if ui.button("Swap").clicked() {
-                            selections.selected_magazine_content = MagazineContent::ToolContent;
-                            selections.selected_magazine_slot = Some(i);
-                            *popup_state = PopupState::ChooseFromLibrary;
-                        }
-                        tool.draw_display(ui);
-                    });
-                    ui[2].horizontal(|ui| {
-                        if ui.button("Swap").clicked() {
-                            selections.selected_magazine_content = MagazineContent::HolderContent;
-                            selections.selected_magazine_slot = Some(i);
-                            *popup_state = PopupState::ChooseFromLibrary;
-                        }
-                        holder.draw_display(ui);
-                    });
-                    ui[3].horizontal(|ui| {
-                        if ui.button("Swap").clicked() {
-                            selections.selected_magazine_content = MagazineContent::AdapterContent;
-                            selections.selected_magazine_slot = Some(i);
-                            *popup_state = PopupState::ChooseFromLibrary;
-                        }
-                        adapter.draw_display(ui);
-                    });
+                    if tool.get_category() == gui_resource.tool_filter
+                        || gui_resource.tool_filter == ToolCategory::All
+                    {
+                        ui[0].label(format!("{}", tool.get_location_slot().to_string()));
+                        ui[1].horizontal(|ui| {
+                            if ui.button("Swap").clicked() {
+                                selections.selected_magazine_content = MagazineContent::ToolContent;
+                                selections.selected_magazine_slot = Some(i);
+                                *popup_state = PopupState::ChooseFromLibrary;
+                            }
+                            tool.draw_display(ui);
+                            if ui.button("Remove").clicked() {
+                                selections.selected_magazine_slot = Some(i);
+                                selections.selected_magazine_content = MagazineContent::ToolContent;
+                                *popup_state = PopupState::RemoveFromMagazine;
+                            }
+                        });
+                        ui[2].horizontal(|ui| {
+                            if ui.button("Swap").clicked() {
+                                selections.selected_magazine_content =
+                                    MagazineContent::HolderContent;
+                                selections.selected_magazine_slot = Some(i);
+                                *popup_state = PopupState::ChooseFromLibrary;
+                            }
+                            holder.draw_display(ui);
+                            if ui.button("Remove").clicked() {
+                                selections.selected_magazine_slot = Some(i);
+                                selections.selected_magazine_content =
+                                    MagazineContent::HolderContent;
+                                *popup_state = PopupState::RemoveFromMagazine;
+                            }
+                        });
+                        ui[3].horizontal(|ui| {
+                            if ui.button("Swap").clicked() {
+                                selections.selected_magazine_content =
+                                    MagazineContent::AdapterContent;
+                                selections.selected_magazine_slot = Some(i);
+                                *popup_state = PopupState::ChooseFromLibrary;
+                            }
+                            adapter.draw_display(ui);
+                            if ui.button("Remove").clicked() {
+                                selections.selected_magazine_slot = Some(i);
+                                selections.selected_magazine_content =
+                                    MagazineContent::AdapterContent;
+                                *popup_state = PopupState::RemoveFromMagazine;
+                            }
+                        });
+                    }
                 }
             });
+        }
+    }
+}
+
+pub fn remove_from_magazine(
+    machines: &mut [Machine],
+    selections: &mut Selections,
+    egui_ctx: &egui::Context,
+    library: &mut Library,
+    popup_state: &mut PopupState,
+) {
+    if popup_state != &PopupState::RemoveFromMagazine {
+        return;
+    }
+    if let Some(machine_index) = selections.selected_machine {
+        let magazine_slot = selections.selected_magazine_slot;
+        if magazine_slot.is_none() {
+            return;
+        } else {
+            let machine = &mut machines[machine_index];
+            if let Some(magazine_index) = machine.selected_magazine {
+                let magazine = &mut machine.magazines[magazine_index];
+                match selections.selected_magazine_content {
+                    MagazineContent::ToolContent => {
+                        // move tool to library
+                        let tool = magazine.contents[magazine_slot.unwrap()].0.clone();
+                        library.tools.push(tool);
+                        // remove tool from magazine
+                        magazine.contents[magazine_slot.unwrap()].0 =
+                            Tool::ToolPlaceHolder(ToolPlaceHolder {
+                                name: "Empty tool".to_string(),
+                                id: uuid::Uuid::new_v4(),
+                                location_id: uuid::Uuid::new_v4(),
+                                location_slot: 0,
+                                category: ToolCategory::Empty,
+                            });
+                    }
+                    MagazineContent::HolderContent => {}
+                    MagazineContent::AdapterContent => {}
+                }
+            }
         }
     }
 }
@@ -504,63 +632,84 @@ pub fn choose_from_library(
     match selections.selected_magazine_content {
         MagazineContent::ToolContent => {
             egui::Window::new("Pick Tool").show(egui_ctx, |ui| {
-                for (i, tool) in &mut library.tools.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                        tool.draw_display(ui);
-                        if ui.button("Choose").clicked() {
-                            selections.selected_library_slot = Some(i);
-                            *popup_state = PopupState::LibraryToMagazine;
-                        }
-                    });
-                }
-                if ui.button("Cancel").clicked() {
-                    *popup_state = PopupState::None;
-                    selections.selected_library_slot = None;
-                    selections.selected_magazine_slot = None;
-                    selections.selected_magazine_content = MagazineContent::ToolContent;
-                    selections.selected_machine = None;
-                }
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    if ui.button("Cancel").clicked() {
+                        *popup_state = PopupState::None;
+                        selections.selected_library_slot = None;
+                        selections.selected_magazine_slot = None;
+                        selections.selected_magazine_content = MagazineContent::ToolContent;
+                        selections.selected_machine = None;
+                    }
+                    for (i, tool) in &mut library.tools.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            tool.draw_display(ui);
+                            if ui.button("Choose").clicked() {
+                                selections.selected_library_slot = Some(i);
+                                *popup_state = PopupState::LibraryToMagazine;
+                            }
+                        });
+                    }
+                });
             });
         }
         MagazineContent::HolderContent => {
             egui::Window::new("Pick Holder").show(egui_ctx, |ui| {
-                for (i, holder) in &mut library.holders.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                        holder.draw_display(ui);
-                        if ui.button("Choose").clicked() {
-                            selections.selected_library_slot = Some(i);
-                            *popup_state = PopupState::LibraryToMagazine;
-                        }
-                    });
-                }
-                if ui.button("Cancel").clicked() {
-                    *popup_state = PopupState::None;
-                    selections.selected_library_slot = None;
-                    selections.selected_magazine_slot = None;
-                    selections.selected_magazine_content = MagazineContent::ToolContent;
-                    selections.selected_machine = None;
-                }
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    if ui.button("Cancel").clicked() {
+                        *popup_state = PopupState::None;
+                        selections.selected_library_slot = None;
+                        selections.selected_magazine_slot = None;
+                        selections.selected_magazine_content = MagazineContent::ToolContent;
+                        selections.selected_machine = None;
+                    }
+                    for (i, holder) in &mut library.holders.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            holder.draw_display(ui);
+                            if ui.button("Choose").clicked() {
+                                selections.selected_library_slot = Some(i);
+                                *popup_state = PopupState::LibraryToMagazine;
+                            }
+                        });
+                    }
+                });
             });
         }
         MagazineContent::AdapterContent => {
             egui::Window::new("Pick Adapter").show(egui_ctx, |ui| {
-                for (i, adapter) in &mut library.adapters.iter_mut().enumerate() {
-                    ui.horizontal(|ui| {
-                        adapter.draw_display(ui);
-                        if ui.button("Choose").clicked() {
-                            selections.selected_library_slot = Some(i);
-                            *popup_state = PopupState::LibraryToMagazine;
-                        }
-                    });
-                }
-                if ui.button("Cancel").clicked() {
-                    *popup_state = PopupState::None;
-                    selections.selected_library_slot = None;
-                    selections.selected_magazine_slot = None;
-                    selections.selected_magazine_content = MagazineContent::ToolContent;
-                    selections.selected_machine = None;
-                }
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    if ui.button("Close").clicked() {
+                        *popup_state = PopupState::None;
+                        selections.selected_library_slot = None;
+                        selections.selected_magazine_slot = None;
+                        selections.selected_magazine_content = MagazineContent::ToolContent;
+                        selections.selected_machine = None;
+                    }
+                    for (i, adapter) in &mut library.adapters.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            adapter.draw_display(ui);
+                            if ui.button("Choose").clicked() {
+                                selections.selected_library_slot = Some(i);
+                                *popup_state = PopupState::LibraryToMagazine;
+                            }
+                        });
+                    }
+                });
             });
+        }
+    }
+}
+
+pub fn sort_magazine(magazine: &mut Magazine, gui_resource: &GuiResource) {
+    match gui_resource.tool_sorting {
+        ToolSorting::Slot => {
+            magazine
+                .contents
+                .sort_by(|a, b| a.0.get_id().cmp(&b.0.get_id()));
+        }
+        ToolSorting::Value => {
+            magazine
+                .contents
+                .sort_by(|a, b| a.0.get_id().cmp(&b.0.get_id()));
         }
     }
 }
@@ -700,6 +849,7 @@ pub fn add_tool(
                 });
             }
             ToolCategory::Empty => {}
+            ToolCategory::All => {}
         }
         match (&gui_resource.tool_selected, &gui_resource.tool_category) {
             (Tool::Drill(_), ToolCategory::Rotating) => {

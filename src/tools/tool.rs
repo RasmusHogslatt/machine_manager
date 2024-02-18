@@ -1,17 +1,30 @@
+use std::cmp::Ordering;
 use uuid::Uuid;
 
 use crate::{
-    circular_insert::*, diamond_insert::*, drill::*, mill::*, square_insert::*,
-    tool_placeholder::*, triangle_insert::*, trigon_insert::*, Drawable, Identifiable,
-    IsPlaceholder, Library, Locatable, PopupState,
+    adapter::*, circular_insert::*, diamond_insert::*, drill::*, holder::*, mill::*,
+    square_insert::*, tool_placeholder::*, triangle_insert::*, trigon_insert::*, Drawable,
+    Identifiable, IsPlaceholder, Library, Locatable, PopupState,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum ToolCategory {
     #[default]
+    All,
     Rotating,
     LatheInsert,
     Empty,
+}
+
+impl std::fmt::Display for ToolCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ToolCategory::All => write!(f, "All"),
+            ToolCategory::Rotating => write!(f, "Rotating"),
+            ToolCategory::LatheInsert => write!(f, "Lathe Insert"),
+            ToolCategory::Empty => write!(f, "Empty"),
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
@@ -24,6 +37,42 @@ pub enum Tool {
     DiamondInsert(DiamondInsert),
     TrigonInsert(TrigonInsert),
     SquareInsert(SquareInsert),
+}
+
+pub trait HasDiameter {
+    fn get_diameter(&self) -> Option<f32>;
+}
+
+pub trait HasDegree {
+    fn get_degree(&self) -> Option<f32>;
+}
+
+impl Tool {
+    pub fn get_category(&self) -> ToolCategory {
+        match self {
+            Tool::ToolPlaceHolder(tool) => tool.get_category(),
+            Tool::Drill(tool) => tool.get_category(),
+            Tool::Mill(tool) => tool.get_category(),
+            Tool::TriangleInsert(tool) => tool.get_category(),
+            Tool::CircularInsert(tool) => tool.get_category(),
+            Tool::DiamondInsert(tool) => tool.get_category(),
+            Tool::TrigonInsert(tool) => tool.get_category(),
+            Tool::SquareInsert(tool) => tool.get_category(),
+        }
+    }
+
+    pub fn get_location_slot(&self) -> usize {
+        match self {
+            Tool::ToolPlaceHolder(tool) => tool.get_location_slot(),
+            Tool::Drill(tool) => tool.get_location_slot(),
+            Tool::Mill(tool) => tool.get_location_slot(),
+            Tool::TriangleInsert(tool) => tool.get_location_slot(),
+            Tool::CircularInsert(tool) => tool.get_location_slot(),
+            Tool::DiamondInsert(tool) => tool.get_location_slot(),
+            Tool::TrigonInsert(tool) => tool.get_location_slot(),
+            Tool::SquareInsert(tool) => tool.get_location_slot(),
+        }
+    }
 }
 
 impl Identifiable for Tool {
@@ -147,4 +196,52 @@ impl IsPlaceholder for Tool {
             _ => false,
         }
     }
+}
+
+impl HasDiameter for Tool {
+    fn get_diameter(&self) -> Option<f32> {
+        match self {
+            Tool::Drill(drill) => drill.get_diameter(),
+            Tool::Mill(mill) => mill.get_diameter(),
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.get_diameter(),
+            Tool::TriangleInsert(triangle_insert) => triangle_insert.get_diameter(),
+            Tool::CircularInsert(circular_insert) => circular_insert.get_diameter(),
+            Tool::SquareInsert(square_insert) => square_insert.get_diameter(),
+            Tool::TrigonInsert(trigon_insert) => trigon_insert.get_diameter(),
+            Tool::DiamondInsert(diamond_insert) => diamond_insert.get_diameter(),
+        }
+    }
+}
+
+impl HasDegree for Tool {
+    fn get_degree(&self) -> Option<f32> {
+        match self {
+            Tool::Drill(drill) => drill.get_degree(),
+            Tool::Mill(mill) => mill.get_degree(),
+            Tool::ToolPlaceHolder(place_holder_tool) => place_holder_tool.get_degree(),
+            Tool::TriangleInsert(triangle_insert) => triangle_insert.get_degree(),
+            Tool::CircularInsert(circular_insert) => circular_insert.get_degree(),
+            Tool::SquareInsert(square_insert) => square_insert.get_degree(),
+            Tool::TrigonInsert(trigon_insert) => trigon_insert.get_degree(),
+            Tool::DiamondInsert(diamond_insert) => diamond_insert.get_degree(),
+        }
+    }
+}
+
+pub fn sort_tools_by_diameter(tools: &mut Vec<(Tool, Holder, Adapter)>) {
+    tools.sort_by(|(a, _, _), (b, _, _)| {
+        a.get_diameter()
+            .unwrap_or(std::f32::NAN)
+            .partial_cmp(&b.get_diameter().unwrap_or(std::f32::NAN))
+            .unwrap_or(Ordering::Equal)
+    });
+}
+
+pub fn sort_tools_by_degree(tools: &mut Vec<(Tool, Holder, Adapter)>) {
+    tools.sort_by(|(a, _, _), (b, _, _)| {
+        a.get_degree()
+            .unwrap_or(std::f32::NAN)
+            .partial_cmp(&b.get_degree().unwrap_or(std::f32::NAN))
+            .unwrap_or(Ordering::Equal)
+    });
 }

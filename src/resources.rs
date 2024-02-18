@@ -1,3 +1,5 @@
+use std::default;
+
 use crate::{
     adapter::*, adapter_placeholder::AdapterPlaceHolder, circular_insert::CircularInsert,
     collet::Collet, diamond_insert::DiamondInsert, drill::Drill, drill_chuck::DrillChuck,
@@ -54,6 +56,25 @@ pub struct GuiResource {
     // machine
     pub machine: Machine,
     pub magazine: Magazine,
+    // magazine display settings
+    pub tool_filter: ToolCategory,
+    pub tool_sorting: ToolSorting,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]
+pub enum ToolSorting {
+    #[default]
+    Value,
+    Slot,
+}
+
+impl std::fmt::Display for ToolSorting {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ToolSorting::Value => write!(f, "Value"),
+            ToolSorting::Slot => write!(f, "Slot"),
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default, PartialEq, Eq)]

@@ -12,6 +12,27 @@ pub struct CircularInsert {
     pub degree: f32,
 }
 
+impl CircularInsert {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
+impl HasDiameter for CircularInsert {
+    fn get_diameter(&self) -> Option<f32> {
+        None
+    }
+}
+
+impl HasDegree for CircularInsert {
+    fn get_degree(&self) -> Option<f32> {
+        Some(self.degree)
+    }
+}
+
 impl Identifiable for CircularInsert {
     fn get_id(&self) -> Uuid {
         self.id

@@ -12,6 +12,27 @@ pub struct Mill {
     pub diameter: f32,
 }
 
+impl Mill {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
+impl HasDiameter for Mill {
+    fn get_diameter(&self) -> Option<f32> {
+        Some(self.diameter)
+    }
+}
+
+impl HasDegree for Mill {
+    fn get_degree(&self) -> Option<f32> {
+        None
+    }
+}
+
 impl Identifiable for Mill {
     fn get_id(&self) -> Uuid {
         self.id

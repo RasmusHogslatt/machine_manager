@@ -12,6 +12,27 @@ pub struct Drill {
     pub diameter: f32,
 }
 
+impl HasDiameter for Drill {
+    fn get_diameter(&self) -> Option<f32> {
+        Some(self.diameter)
+    }
+}
+
+impl HasDegree for Drill {
+    fn get_degree(&self) -> Option<f32> {
+        None
+    }
+}
+
+impl Drill {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
 impl Identifiable for Drill {
     fn get_id(&self) -> Uuid {
         self.id

@@ -12,6 +12,27 @@ pub struct TriangleInsert {
     pub degree: f32,
 }
 
+impl TriangleInsert {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
+impl HasDegree for TriangleInsert {
+    fn get_degree(&self) -> Option<f32> {
+        Some(self.degree)
+    }
+}
+
+impl HasDiameter for TriangleInsert {
+    fn get_diameter(&self) -> Option<f32> {
+        None
+    }
+}
+
 impl Identifiable for TriangleInsert {
     fn get_id(&self) -> Uuid {
         self.id

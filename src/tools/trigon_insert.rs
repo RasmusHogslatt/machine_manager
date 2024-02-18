@@ -12,6 +12,26 @@ pub struct TrigonInsert {
     pub degree: f32,
 }
 
+impl TrigonInsert {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
+impl HasDegree for TrigonInsert {
+    fn get_degree(&self) -> Option<f32> {
+        Some(self.degree)
+    }
+}
+impl HasDiameter for TrigonInsert {
+    fn get_diameter(&self) -> Option<f32> {
+        None
+    }
+}
+
 impl Identifiable for TrigonInsert {
     fn get_id(&self) -> Uuid {
         self.id

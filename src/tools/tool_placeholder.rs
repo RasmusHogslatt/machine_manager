@@ -10,6 +10,25 @@ pub struct ToolPlaceHolder {
     pub category: ToolCategory,
 }
 
+impl ToolPlaceHolder {
+    pub fn get_category(&self) -> ToolCategory {
+        self.category.clone()
+    }
+    pub fn get_location_slot(&self) -> usize {
+        self.location_slot
+    }
+}
+
+impl HasDiameter for ToolPlaceHolder {
+    fn get_diameter(&self) -> Option<f32> {
+        None
+    }
+}
+impl HasDegree for ToolPlaceHolder {
+    fn get_degree(&self) -> Option<f32> {
+        None
+    }
+}
 impl Identifiable for ToolPlaceHolder {
     fn get_id(&self) -> Uuid {
         self.id
